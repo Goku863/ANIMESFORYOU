@@ -226,15 +226,23 @@ function watchAnime(id) {
   
   // Storyline
   const storyline = a.info?.description || a.storyline || '';
-  document.getElementById('animeStoryline').innerHTML = storyline ? '<p>' + esc(storyline.substring(0, 500)) + '</p>' : '';
+  const storylineEl = document.getElementById('animeStoryline');
+  if (storyline && storylineEl) {
+    storylineEl.innerHTML = '<h3>Storyline</h3><p>' + esc(storyline.substring(0, 800)) + '</p>';
+  } else if (storylineEl) {
+    storylineEl.innerHTML = '';
+  }
   
   // More Info
   let infoHTML = '';
-  if (a.info?.genres) infoHTML += '<div class="info-row"><span class="info-label">Genres:</span><span>' + a.info.genres.join(', ') + '</span></div>';
+  if (a.info?.genres?.length) infoHTML += '<div class="info-row"><span class="info-label">Genres:</span><span>' + a.info.genres.join(', ') + '</span></div>';
   if (a.info?.language) infoHTML += '<div class="info-row"><span class="info-label">Language:</span><span>' + a.info.language + '</span></div>';
   if (a.info?.quality) infoHTML += '<div class="info-row"><span class="info-label">Quality:</span><span>' + a.info.quality + '</span></div>';
   if (a.info?.stars) infoHTML += '<div class="info-row"><span class="info-label">Stars:</span><span>' + a.info.stars + '</span></div>';
-  document.getElementById('animeInfo').innerHTML = infoHTML;
+  if (a.year) infoHTML += '<div class="info-row"><span class="info-label">Year:</span><span>' + a.year + '</span></div>';
+  if (a.downloads.length) infoHTML += '<div class="info-row"><span class="info-label">Episodes:</span><span>' + a.downloads.length + '</span></div>';
+  const infoPanel = document.getElementById('animeInfoPanel');
+  if (infoPanel) infoPanel.innerHTML = infoHTML ? '<h3>More Info</h3>' + infoHTML : '';
   
   // Download Section - organized like pikahd.co
   if (a.downloads.length > 0) {
@@ -290,86 +298,31 @@ function playEpisode(idx) {
   
   // Update player
   const wrap = document.getElementById('playerWrap');
-  const slug = currentWatchAnime.slug;
+  const a = currentWatchAnime;
   
-  // Show loading state
-  wrap.innerHTML = '<div class="no-player"><div class="spinner"></div><p>Loading player...</p></div>';
+  // Build the kmhd.eu play URL — it has its own player UI
+  // Format: https://links.kmhd.eu/play?id={playHash}
+  const playUrl = a.playLink || '';
   
-  // Fetch actual streaming links from play URL
-  if (currentWatchAnime.playLink) {
-    fetchStreamLinks(currentWatchAnime.playLink).then(streams => {
-      if (streams && streams.streamwish && streams.streamwish.length > idx) {
-        // Use streamwish embed (fastest)
-        const embedUrl = `https://hglink.to/e/${streams.streamwish[idx]}`;
-        wrap.innerHTML = '<iframe src="' + embedUrl + '" allowfullscreen frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" style="width:100%;height:100%;border:none;"></iframe>';
-      } else if (streams && streams.streamtape && streams.streamtape.length > idx) {
-        // Fallback to streamtape
-        const embedUrl = `https://streamtape.com/e/${streams.streamtape[idx]}`;
-        wrap.innerHTML = '<iframe src="' + embedUrl + '" allowfullscreen frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" style="width:100%;height:100%;border:none;"></iframe>';
-      } else {
-        // Fallback to pikahd.co
-        wrap.innerHTML = '<div class="no-player"><p>Click below to watch</p><a href="' + (currentWatchAnime.pikahd || 'https://new.pikahd.co/' + slug) + '" target="_blank" class="btn btn-primary" style="margin-top:12px;">▶ Watch Episode ' + (idx + 1) + '</a></div>';
-      }
-    });
+  if (playUrl) {
+    // Embed kmhd.eu play page directly — it has a built-in video player
+    wrap.innerHTML = '<iframe src="' + playUrl + '" allowfullscreen frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" style="width:100%;height:100%;border:none;background:#000;"></iframe>';
   } else {
-    // No playLink - show pikahd.co link
-    wrap.innerHTML = '<div class="no-player"><p>Click below to watch</p><a href="' + (currentWatchAnime.pikahd || 'https://new.pikahd.co/' + slug) + '" target="_blank" class="btn btn-primary" style="margin-top:12px;">▶ Watch Episode ' + (idx + 1) + '</a></div>';
+    // No play link — open pikahd.co page
+    wrap.innerHTML = '<div class="no-player">' +
+      '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>' +
+      '<p>Click below to watch</p>' +
+      '<a href="' + (a.pikahd || 'https://new.pikahd.co/' + a.slug) + '" target="_blank" class="btn btn-primary" style="margin-top:12px;">▶ Watch Episode ' + (idx + 1) + '</a></div>';
   }
   
   // Show player controls
   document.getElementById('playerControls').style.display = 'flex';
   
-  // Update play button
-  document.getElementById('watchActions').innerHTML = 
-    '<button class="btn btn-primary" onclick="playEpisode(' + idx + ')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Episode ' + (idx + 1) + '</button>' +
-    '<button class="btn btn-outline" onclick="toggleWatchlist(\'' + currentWatchAnime.slug + '\')">' + (watchlist.includes(currentWatchAnime.slug) ? '★ Saved' : '☆ Save') + '</button>';
-}
-
-function getAnilistId(slug) {
-  // Try to extract numeric ID from slug if present
-  const match = slug.match(/-(\d+)$/);
-  if (match) return match[1];
-  
-  // Default IDs for common anime
-  const slugMap = {
-    'one-piece': 21,
-    'naruto-shippuuden': 1735,
-    'attack-on-titan': 16498,
-    'demon-slayer-kimetsu-no-yaiba': 101922,
-    'jujutsu-kaisen': 113415,
-    'my-hero-academia': 21459,
-    'dragon-ball-super': 31149,
-    'solo-leveling': 143228
-  };
-  return slugMap[slug] || '1';
-}
-
-// Fetch streaming links from play URL
-async function fetchStreamLinks(playUrl) {
-  try {
-    const response = await fetch(playUrl);
-    const text = await response.text();
-    
-    // Extract streamtape and streamwish IDs
-    const streamtapeRegex = /streamtape_res:"([^"]+)"/g;
-    const streamwishRegex = /streamwish_res:"([^"]+)"/g;
-    
-    const streams = { streamtape: [], streamwish: [] };
-    let match;
-    
-    while ((match = streamtapeRegex.exec(text)) !== null) {
-      streams.streamtape.push(match[1]);
-    }
-    
-    while ((match = streamwishRegex.exec(text)) !== null) {
-      streams.streamwish.push(match[1]);
-    }
-    
-    return streams;
-  } catch (e) {
-    console.error('Failed to fetch streams:', e);
-    return null;
-  }
+  // Update actions
+  let actionsHTML = '<button class="btn btn-primary" onclick="playEpisode(' + idx + ')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Episode ' + (idx + 1) + '</button>';
+  actionsHTML += '<button class="btn btn-outline" onclick="toggleWatchlist(\'' + a.slug + '\')">' + (watchlist.includes(a.slug) ? '★ Saved' : '☆ Save') + '</button>';
+  actionsHTML += '<a href="' + (a.pikahd || 'https://new.pikahd.co/' + a.slug) + '" target="_blank" class="btn btn-outline"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg> pikahd.co</a>';
+  document.getElementById('watchActions').innerHTML = actionsHTML;
 }
 
 function toggleFullscreen() {
