@@ -24,39 +24,13 @@
   --radius-lg: 16px;
   --radius-xl: 24px;
   --shadow: 0 8px 32px rgba(0,0,0,0.4);
-  --font: 'Geist', -apple-system, sans-serif;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Space Grotesk', -apple-system, sans-serif;
   
   /* transitions-dev tokens */
   --anim-duration: 0ms;
   --anim-easing: cubic-bezier(0.22, 1, 0.36, 1);
   --anim-delay: 0ms;
-
-  /* Transitions.dev — Duration */
-  --duration-stagger:   40ms;
-  --duration-micro:     80ms;
-  --duration-quick:     150ms;
-  --duration-fast:      250ms;
-  --duration-medium:    350ms;
-  --duration-slow:      400ms;
-  --duration-very-slow: 500ms;
-
-  /* Transitions.dev — Distance */
-  --distance-micro:   4px;
-  --distance-small:   6px;
-  --distance-base:    8px;
-  --distance-medium: 12px;
-  --distance-large:  30px;
-
-  /* Transitions.dev — Blur */
-  --blur-small:  2px;
-  --blur-medium: 3px;
-  --blur-large:  8px;
-
-  /* Transitions.dev — Scale */
-  --scale-large:  0.96;
-  --scale-medium: 0.97;
-  --scale-small:  0.98;
-  --scale-tiny:   0.99;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -197,6 +171,7 @@ input { font-family: inherit; }
   box-shadow: 0 4px 16px var(--accent-glow);
 }
 .logo-text {
+  font-family: var(--font-display);
   font-size: 18px;
   font-weight: 800;
   letter-spacing: -0.5px;
@@ -313,6 +288,7 @@ input { font-family: inherit; }
   background: linear-gradient(transparent, rgba(0,0,0,0.9));
 }
 .hero-title {
+  font-family: var(--font-display);
   font-size: 28px;
   font-weight: 800;
   margin-bottom: 8px;
@@ -361,7 +337,7 @@ input { font-family: inherit; }
   align-items: center;
   margin-bottom: 16px;
 }
-.section-header h2 { font-size: 20px; font-weight: 700; }
+.section-header h2 { font-family: var(--font-display); font-size: 20px; font-weight: 700; }
 .see-all { font-size: 13px; color: var(--accent-hover); font-weight: 500; }
 .see-all:hover { text-decoration: underline; }
 .count { font-size: 13px; color: var(--text-muted); }
@@ -583,6 +559,7 @@ input { font-family: inherit; }
 }
 .watch-info { margin-bottom: 24px; }
 .watch-info h1 {
+  font-family: var(--font-display);
   font-size: 24px;
   font-weight: 800;
   margin-bottom: 12px;
@@ -622,6 +599,7 @@ input { font-family: inherit; }
 /* Episode List */
 .episode-list { margin-bottom: 24px; }
 .episode-list h3 {
+  font-family: var(--font-display);
   font-size: 16px;
   font-weight: 700;
   margin-bottom: 12px;
@@ -655,6 +633,7 @@ input { font-family: inherit; }
 
 /* Download Section */
 .download-section h3 {
+  font-family: var(--font-display);
   font-size: 16px;
   font-weight: 700;
   margin-bottom: 12px;
@@ -703,6 +682,7 @@ input { font-family: inherit; }
   overflow-y: auto;
 }
 .watch-sidebar h3 {
+  font-family: var(--font-display);
   font-size: 16px;
   font-weight: 700;
   margin-bottom: 12px;
@@ -752,7 +732,7 @@ input { font-family: inherit; }
 
 /* ── Page Header ───────────────────────────────────────── */
 .page-header { margin-bottom: 32px; }
-.page-header h1 { font-size: 28px; font-weight: 800; }
+.page-header h1 { font-family: var(--font-display); font-size: 28px; font-weight: 800; }
 
 /* ── Schedule Grid ─────────────────────────────────────── */
 .schedule-grid {
