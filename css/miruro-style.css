@@ -554,6 +554,11 @@ input { font-family: inherit; }
   display: flex;
   gap: 8px;
   z-index: 10;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.player-container:hover .player-controls {
+  opacity: 1;
 }
 .ctrl-btn {
   width: 36px;

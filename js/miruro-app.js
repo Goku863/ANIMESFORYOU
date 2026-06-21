@@ -247,14 +247,10 @@ function watchAnime(id) {
   ).join('');
   
   // Show/hide player controls
-  document.getElementById('playerControls').style.display = a.playLink ? 'flex' : 'none';
+  document.getElementById('playerControls').style.display = 'flex';
   
-  // Auto-play first episode if has playLink
-  if (a.playLink) {
-    playEpisode(0);
-  } else {
-    document.getElementById('playerWrap').innerHTML = '<div class="no-player">No streaming available. Use download links below.</div>';
-  }
+  // Auto-play first episode
+  playEpisode(0);
   
   window.scrollTo(0, 0);
 }
@@ -268,18 +264,43 @@ function playEpisode(idx) {
     el.classList.toggle('active', i === idx);
   });
   
-  // Update player
+  // Update player with streaming sources
   const wrap = document.getElementById('playerWrap');
-  if (currentWatchAnime.playLink) {
-    wrap.innerHTML = '<iframe src="' + currentWatchAnime.playLink + '" allowfullscreen></iframe>';
-  } else {
-    wrap.innerHTML = '<div class="no-player">No streaming available. Use download links below.</div>';
-  }
+  const slug = currentWatchAnime.slug;
+  const ep = idx + 1;
+  
+  // Use miruro.ru-style streaming URLs
+  const streamUrl = `https://www.miruro.ru/watch/${getAnilistId(slug)}/${slug}?ep=${ep}`;
+  
+  wrap.innerHTML = '<iframe src="' + streamUrl + '" allowfullscreen frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" style="width:100%;height:100%;border:none;"></iframe>';
+  
+  // Show player controls
+  document.getElementById('playerControls').style.display = 'flex';
   
   // Update play button
   document.getElementById('watchActions').innerHTML = 
     '<button class="btn btn-primary" onclick="playEpisode(' + idx + ')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Playing Episode ' + (idx + 1) + '</button>' +
     '<button class="btn btn-outline" onclick="toggleWatchlist(\'' + currentWatchAnime.slug + '\')">' + (watchlist.includes(currentWatchAnime.slug) ? '★ Saved' : '☆ Save') + '</button>';
+}
+
+function getAnilistId(slug) {
+  // Map slugs to anilist IDs for miruro.ru
+  const slugMap = {
+    'one-piece': 21,
+    'naruto': 20,
+    'attack-on-titan': 16498,
+    'demon-slayer': 101922,
+    'jujutsu-kaisen': 113415,
+    'my-hero-academia': 21459,
+    'dragon-ball-super': 31149,
+    'solo-leveling': 143228,
+    'the-beginning-after-the-end': 206541,
+    'witch-hat-atelier': 147105,
+    're-zero': 189046,
+    'dr-stone': 199221,
+    'classroom-of-the-elite': 180745
+  };
+  return slugMap[slug] || 1;
 }
 
 function toggleFullscreen() {
@@ -288,6 +309,15 @@ function toggleFullscreen() {
     container.requestFullscreen();
   } else {
     document.exitFullscreen();
+  }
+}
+
+function openInNewTab() {
+  if (currentWatchAnime) {
+    const slug = currentWatchAnime.slug;
+    const ep = currentEpisode + 1;
+    const streamUrl = `https://www.miruro.ru/watch/${getAnilistId(slug)}/${slug}?ep=${ep}`;
+    window.open(streamUrl, '_blank');
   }
 }
 
@@ -372,3 +402,4 @@ window.toggleMobileMenu = toggleMobileMenu;
 window.closeMobileMenu = closeMobileMenu;
 window.loadMore = loadMore;
 window.toggleFullscreen = toggleFullscreen;
+window.openInNewTab = openInNewTab;
