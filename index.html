@@ -2,176 +2,182 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AnimeStream — Watch Anime Online HD</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AnimeStream · Watch Anime Online Free · Stream Sub & Dub in HD</title>
+  <meta name="description" content="Watch anime online free in HD. Stream subbed and dubbed anime episodes with no ads, no signup.">
+  <meta name="theme-color" content="#0b0b0f">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/transitions.css">
-  <link rel="stylesheet" href="css/pikahd-style.css">
+  <link rel="stylesheet" href="css/miruro-style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>🎬</text></svg>">
 </head>
 <body>
-  <div class="app">
+  <div id="app">
     <!-- Header -->
     <header class="header">
       <div class="header-inner">
-        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
         <a href="#" class="logo" onclick="navigateTo('home');return false;">
-          <span class="logo-text">🎬 AnimeStream</span>
+          <span class="logo-icon">▶</span>
+          <span class="logo-text">AnimeStream</span>
         </a>
-        <div class="header-right">
-          <button class="ai-btn" onclick="toggleAiPanel()">🤖 AI</button>
-          <button class="notif-btn" onclick="toggleNotifs()">🔔</button>
+        <nav class="header-nav">
+          <a href="#" class="nav-link active" data-section="home" onclick="navigateTo('home');return false;">Home</a>
+          <a href="#" class="nav-link" data-section="trending" onclick="navigateTo('trending');return false;">Trending</a>
+          <a href="#" class="nav-link" data-section="schedule" onclick="navigateTo('schedule');return false;">Schedule</a>
+          <a href="#" class="nav-link" data-section="movies" onclick="navigateTo('movies');return false;">Movies</a>
+        </nav>
+        <div class="header-actions">
+          <div class="search-wrap" id="searchWrap">
+            <input type="text" class="search-input" id="searchInput" placeholder="Search anime..." oninput="handleSearch(this.value)">
+            <button class="search-icon" onclick="toggleSearch()">🔍</button>
+          </div>
+          <button class="icon-btn" onclick="toggleAiPanel()" title="AI Assistant">🤖</button>
+          <button class="icon-btn" onclick="toggleWatchlistPanel()" title="Watchlist">⭐</button>
         </div>
+        <button class="mobile-menu" onclick="toggleMobileMenu()">☰</button>
       </div>
     </header>
 
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <span class="sidebar-title">Menu</span>
-        <button class="sidebar-close" onclick="toggleSidebar()">✕</button>
-      </div>
-      <nav class="sidebar-nav">
-        <a href="#" class="sidebar-link active" data-section="home" onclick="navigateTo('home');return false;">🏠 Home</a>
-        <a href="#" class="sidebar-link" data-section="trending" onclick="navigateTo('trending');return false;">🔥 Trending</a>
-        <a href="#" class="sidebar-link" data-section="new-releases" onclick="navigateTo('new-releases');return false;">🆕 New Releases</a>
-        <a href="#" class="sidebar-link" data-section="new-episodes" onclick="navigateTo('new-episodes');return false;">📺 New Episodes</a>
-        <a href="#" class="sidebar-link" data-section="watchlist" onclick="navigateTo('watchlist');return false;">⭐ Watchlist</a>
-        <a href="#" class="sidebar-link" data-section="all" onclick="navigateTo('all');return false;">📂 All Anime</a>
-      </nav>
-      <div class="sidebar-divider"></div>
-      <div class="sidebar-section">
-        <span class="sidebar-section-title">Audio</span>
-        <div class="sidebar-tags">
-          <button class="sidebar-tag" onclick="filterByCategory('dual-audio')">Dual Audio</button>
-          <button class="sidebar-tag" onclick="filterByCategory('triple-audio')">Triple Audio</button>
-          <button class="sidebar-tag" onclick="filterByCategory('anime-hindi-dubbed')">Hindi Dubbed</button>
-        </div>
-      </div>
-      <div class="sidebar-divider"></div>
-      <div class="sidebar-section">
-        <span class="sidebar-section-title">Quality</span>
-        <div class="sidebar-tags">
-          <button class="sidebar-tag" onclick="filterByCategory('10bit-hevc')">HEVC</button>
-          <button class="sidebar-tag" onclick="filterByCategory('1080p')">1080p</button>
-          <button class="sidebar-tag" onclick="filterByCategory('720p')">720p</button>
-        </div>
-      </div>
-    </aside>
-    <div class="sidebar-backdrop" onclick="toggleSidebar()"></div>
+    <!-- Mobile Menu -->
+    <div class="mobile-nav" id="mobileNav">
+      <a href="#" onclick="navigateTo('home');closeMobileMenu();return false;">Home</a>
+      <a href="#" onclick="navigateTo('trending');closeMobileMenu();return false;">Trending</a>
+      <a href="#" onclick="navigateTo('schedule');closeMobileMenu();return false;">Schedule</a>
+      <a href="#" onclick="navigateTo('movies');closeMobileMenu();return false;">Movies</a>
+      <a href="#" onclick="navigateTo('watchlist');closeMobileMenu();return false;">Watchlist</a>
+    </div>
 
     <!-- Main Content -->
     <main class="main">
-      <div class="search-section">
-        <div class="search-box">
-          <input type="text" placeholder="Search anime..." id="searchInput" oninput="handleSearch(this.value)">
-        </div>
-      </div>
-
-      <div class="n8n-bar" id="n8nBar">
-        <div class="n8n-bar-inner">
-          <span class="n8n-label">⚡ n8n</span>
-          <div class="n8n-toggles">
-            <button class="n8n-toggle active" onclick="toggleWorkflow('wf-ai')" id="wf-ai">🤖 AI Recs</button>
-            <button class="n8n-toggle active" onclick="toggleWorkflow('wf-rss')" id="wf-rss">📡 RSS Sync</button>
-            <button class="n8n-toggle active" onclick="toggleWorkflow('wf-notify')" id="wf-notify">🔔 Alerts</button>
+      <!-- Home Section -->
+      <section id="homeSection">
+        <!-- Hero Banner -->
+        <div class="hero" id="heroBanner"></div>
+        
+        <!-- Trending Now -->
+        <div class="section">
+          <div class="section-header">
+            <h2>Trending Now</h2>
+            <a href="#" class="see-all" onclick="navigateTo('trending');return false;">See All →</a>
           </div>
-          <span class="n8n-status">● <span id="animeCount">0</span> anime loaded</span>
+          <div class="carousel" id="trendingCarousel"></div>
         </div>
-      </div>
 
-      <!-- Anime Grid Section -->
-      <div class="content-area" id="animeGridSection">
-        <div class="section-header">
-          <h2>All Anime</h2>
-          <span class="dl-total">Downloads: <span id="downloadCount">0</span></span>
+        <!-- Recent Updates -->
+        <div class="section">
+          <div class="section-header">
+            <h2>Recent Updates</h2>
+          </div>
+          <div class="anime-grid" id="recentGrid"></div>
         </div>
-        <div class="anime-grid" id="animeGrid"></div>
-      </div>
 
-      <!-- Trending Section -->
-      <div class="content-area" id="trendingSection" style="display:none;">
-        <div class="section-header"><h2>🔥 Trending Now</h2></div>
+        <!-- All Anime -->
+        <div class="section">
+          <div class="section-header">
+            <h2>All Anime</h2>
+            <span class="count" id="animeCount">0 titles</span>
+          </div>
+          <div class="anime-grid" id="homeGrid"></div>
+          <div class="load-more" id="loadMore">
+            <button class="btn-load" onclick="loadMore()">Load More</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Trending Page -->
+      <section id="trendingSection" style="display:none;">
+        <div class="page-header">
+          <h1>Trending Anime</h1>
+          <p>Most popular anime right now</p>
+        </div>
         <div class="anime-grid" id="trendingGrid"></div>
-      </div>
+      </section>
 
-      <!-- New Releases Section -->
-      <div class="content-area" id="newReleasesSection" style="display:none;">
-        <div class="section-header"><h2>🆕 New Releases</h2></div>
-        <div class="anime-grid" id="newReleasesGrid"></div>
-      </div>
+      <!-- Schedule Page -->
+      <section id="scheduleSection" style="display:none;">
+        <div class="page-header">
+          <h1>Airing Schedule</h1>
+          <p>When new episodes air</p>
+        </div>
+        <div class="schedule-grid" id="scheduleGrid"></div>
+      </section>
 
-      <!-- New Episodes Section -->
-      <div class="content-area" id="newEpisodesSection" style="display:none;">
-        <div class="section-header"><h2>📺 Latest Episodes</h2></div>
-        <div class="anime-grid" id="newEpisodesGrid"></div>
-      </div>
+      <!-- Movies Page -->
+      <section id="moviesSection" style="display:none;">
+        <div class="page-header">
+          <h1>Anime Movies</h1>
+          <p>Best animated films</p>
+        </div>
+        <div class="anime-grid" id="moviesGrid"></div>
+      </section>
 
-      <!-- Watchlist Section -->
-      <div class="content-area" id="watchlistSection" style="display:none;">
-        <div class="section-header"><h2>⭐ My Watchlist</h2></div>
+      <!-- Watchlist Page -->
+      <section id="watchlistSection" style="display:none;">
+        <div class="page-header">
+          <h1>My Watchlist</h1>
+          <p>Your saved anime</p>
+        </div>
         <div class="anime-grid" id="watchlistGrid"></div>
-      </div>
+      </section>
+
+      <!-- Search Results -->
+      <section id="searchSection" style="display:none;">
+        <div class="page-header">
+          <h1 id="searchTitle">Search Results</h1>
+        </div>
+        <div class="anime-grid" id="searchGrid"></div>
+      </section>
     </main>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="detailOverlay" onclick="closeDetail()"></div>
+    <div class="modal" id="detailModal">
+      <button class="modal-close" onclick="closeDetail()">✕</button>
+      <div class="modal-content" id="detailContent"></div>
+    </div>
 
     <!-- AI Panel -->
     <div class="ai-panel" id="aiPanel">
-      <div class="ai-panel-header">
-        <span class="ai-panel-title">🤖 AI Assistant <span class="fable-badge">Fable 5</span></span>
-        <button class="ai-close" onclick="toggleAiPanel()">✕</button>
+      <div class="ai-header">
+        <span>🤖 AI Assistant</span>
+        <button onclick="toggleAiPanel()">✕</button>
       </div>
-      <div class="ai-panel-body" id="aiMessages">
-        <div class="ai-msg bot-msg">
-          <p>I'm AnimeStream AI. Ask me anything about anime.</p>
+      <div class="ai-body" id="aiMessages">
+        <div class="ai-msg bot">
+          <p>Ask me anything about anime.</p>
           <div class="ai-suggestions">
-            <button class="ai-suggestion" onclick="document.getElementById('aiInput').value='What should I watch next?';sendAiMessage()">What should I watch?</button>
-            <button class="ai-suggestion" onclick="document.getElementById('aiInput').value='Recommend something';sendAiMessage()">Recommend</button>
-            <button class="ai-suggestion" onclick="document.getElementById('aiInput').value='What is new this season?';sendAiMessage()">New this season</button>
+            <button onclick="askAI('recommend')">Recommend</button>
+            <button onclick="askAI('trending')">Trending</button>
+            <button onclick="askAI('new')">New Releases</button>
           </div>
         </div>
       </div>
-      <div class="ai-panel-footer">
-        <div class="ai-input-wrap">
-          <input class="ai-input" type="text" placeholder="Ask about anime..." id="aiInput" onkeydown="if(event.key==='Enter')sendAiMessage()">
-          <button class="ai-send" onclick="sendAiMessage()">➤</button>
-        </div>
-      </div>
-    </div>
-    <div class="ai-backdrop" onclick="toggleAiPanel()"></div>
-
-    <!-- Notification Panel -->
-    <div class="notif-panel" id="notifPanel">
-      <div class="notif-header"><span>Notifications</span></div>
-      <div class="notif-list">
-        <div class="notif-item unread">
-          <div class="notif-icon">🎬</div>
-          <div class="notif-content">
-            <p>AnimeStream loaded with <strong>1455 anime</strong></p>
-            <span class="notif-time">Just now</span>
-          </div>
-        </div>
+      <div class="ai-footer">
+        <input type="text" id="aiInput" placeholder="Ask..." onkeydown="if(event.key==='Enter')sendAiMessage()">
+        <button onclick="sendAiMessage()">➤</button>
       </div>
     </div>
 
-    <!-- Detail Modal -->
-    <div class="modal-backdrop" id="detailBackdrop" onclick="closeDetail()"></div>
-    <div class="modal" id="detailModal">
-      <div class="modal-header">
-        <span class="modal-title" id="detailTitle">Anime Details</span>
-        <button class="modal-close" onclick="closeDetail()">✕</button>
+    <!-- Watchlist Panel -->
+    <div class="wl-panel" id="wlPanel">
+      <div class="wl-header">
+        <span>⭐ Watchlist</span>
+        <button onclick="toggleWatchlistPanel()">✕</button>
       </div>
-      <div class="modal-body" id="detailBody"></div>
+      <div class="wl-body" id="wlBody"></div>
     </div>
 
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
-      <div class="loading-spinner"></div>
-      <p>Loading anime library...</p>
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
     </div>
   </div>
 
-  <script src="js/pikahd-app.js"></script>
+  <script src="js/miruro-app.js"></script>
 </body>
 </html>
