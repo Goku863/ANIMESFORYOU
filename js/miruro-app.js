@@ -264,22 +264,17 @@ function playEpisode(idx) {
     el.classList.toggle('active', i === idx);
   });
   
-  // Update player with working streaming sources
+  // Update player - use pikahd.co embed or playLink
   const wrap = document.getElementById('playerWrap');
   const slug = currentWatchAnime.slug;
-  const ep = idx + 1;
   
-  // Use alternative embed sources that allow framing
-  const embedSources = [
-    `https://www.youtube.com/embed/dQw4w9WgXcQ`,
-    `https://player.anilist.co/embed/${getAnilistId(slug)}?episode=${ep}`,
-    `https://aniwatch.to/embed/${getAnilistId(slug)}?ep=${ep}`
-  ];
-  
-  // Try first available source
-  const streamUrl = embedSources[0];
-  
-  wrap.innerHTML = '<iframe src="' + streamUrl + '" allowfullscreen frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" style="width:100%;height:100%;border:none;"></iframe>';
+  // Use the actual playLink from scraped data if available
+  if (currentWatchAnime.playLink) {
+    wrap.innerHTML = '<iframe src="' + currentWatchAnime.playLink + '" allowfullscreen frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" style="width:100%;height:100%;border:none;"></iframe>';
+  } else {
+    // Redirect to pikahd.co for playback
+    wrap.innerHTML = '<div class="no-player"><p>Click below to watch on pikahd.co</p><a href="' + (currentWatchAnime.pikahd || 'https://new.pikahd.co/' + slug) + '" target="_blank" class="btn btn-primary" style="margin-top:12px;display:inline-flex;align-items:center;gap:8px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Watch Episode ' + (idx + 1) + '</a></div>';
+  }
   
   // Show player controls
   document.getElementById('playerControls').style.display = 'flex';
@@ -307,6 +302,28 @@ function getAnilistId(slug) {
     'solo-leveling': 143228
   };
   return slugMap[slug] || '1';
+}
+
+// Fetch streaming links from play URL
+async function fetchStreamLinks(playUrl) {
+  try {
+    const response = await fetch(playUrl);
+    const html = await response.text();
+    
+    // Extract streamtape and streamwish links
+    const streamtapeMatches = html.match(/streamtape_res:"([^"]+)"/g) || [];
+    const streamwishMatches = html.match(/streamwish_res:"([^"]+)"/g) || [];
+    
+    const streams = {
+      streamtape: streamtapeMatches.map(m => m.split('"')[1]),
+      streamwish: streamwishMatches.map(m => m.split('"')[1])
+    };
+    
+    return streams;
+  } catch (e) {
+    console.error('Failed to fetch streams:', e);
+    return null;
+  }
 }
 
 function toggleFullscreen() {
