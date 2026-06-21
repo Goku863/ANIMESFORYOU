@@ -1,10 +1,82 @@
 /* ============================================================
-   Miruro Clone — AniList API + Working Player + SPA Router
+   Miruro Clone — AniList API + Decrypted Miruro Streaming
    ============================================================ */
 
 const ANILIST_API = 'https://graphql.anilist.co';
+const MIRURO_PIPE = 'https://www.miruro.tv/api/secure/pipe';
+const MIRURO_HEADERS = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'Referer': 'https://www.miruro.tv/' };
 let currentAnime = null;
 let currentEpisode = 0;
+
+// ── Miruro Pipe Encoding/Decoding (from walterwhite-69/Miruro-API) ──
+function encodePipeRequest(payload) {
+  const json = JSON.stringify(payload);
+  const bytes = new TextEncoder().encode(json);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function decodePipeResponse(encodedStr) {
+  let s = encodedStr.trim();
+  while (s.length % 4) s += '=';
+  s = s.replace(/-/g, '+').replace(/_/g, '/');
+  const binary = atob(s);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  // Decompress gzip
+  const ds = new DecompressionStream('gzip');
+  const writer = ds.writable.getWriter();
+  writer.write(bytes);
+  writer.close();
+  return new Response(ds.readable).arrayBuffer().then(buf => {
+    const decoder = new TextDecoder();
+    return JSON.parse(decoder.decode(buf));
+  });
+}
+
+function decodeEpisodeId(encodedId) {
+  try {
+    let s = encodedId;
+    while (s.length % 4) s += '=';
+    s = s.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = atob(s);
+    return decoded.includes(':') ? decoded : encodedId;
+  } catch { return encodedId; }
+}
+
+function deepTranslateIds(obj) {
+  if (!obj) return;
+  if (typeof obj === 'object') {
+    for (const [key, val] of Object.entries(obj)) {
+      if (key === 'id' && typeof val === 'string') obj[key] = decodeEpisodeId(val);
+      else if (typeof val === 'object') deepTranslateIds(val);
+    }
+  } else if (Array.isArray(obj)) {
+    for (const item of obj) deepTranslateIds(item);
+  }
+}
+
+async function miruroPipe(path, query) {
+  const payload = { path, method: 'GET', query, body: null, version: '0.1.0' };
+  const encoded = encodePipeRequest(payload);
+  const res = await fetch(`${MIRURO_PIPE}?e=${encoded}`, { headers: MIRURO_HEADERS });
+  if (!res.ok) throw new Error(`Pipe ${res.status}`);
+  const text = await res.text();
+  return await decodePipeResponse(text);
+}
+
+async function miruroEpisodes(anilistId) {
+  const data = await miruroPipe('episodes', { anilistId });
+  deepTranslateIds(data);
+  return data;
+}
+
+async function miruroSources(episodeId, provider, anilistId, category = 'sub') {
+  const encId = btoa(episodeId).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const data = await miruroPipe('sources', { episodeId: encId, provider, category, anilistId });
+  return data;
+}
 
 // ── AniList GraphQL Queries ──────────────────────────────
 const QUERIES = {
@@ -389,78 +461,108 @@ function nextEp() {
 }
 
 // ── Player ───────────────────────────────────────────────
-// Try multiple embedding approaches
-const PLAYER_SOURCES = [
-  // Consumet API for HLS streams
-  { name: 'Source 1', type: 'hls', buildUrl: (id, ep) => `https://api.consumet.org/anime/anilist/watch?episodeId=${id}-${ep}&provider=animekai` },
-  // Direct miruro embed
-  { name: 'Miruro', type: 'iframe', buildUrl: (id, ep) => `https://www.miruro.ru/watch/${id}/one-piece?ep=${ep}` },
-];
+let activeProvider = 'kiwi';
 
-let activeSource = 0;
-
-function loadPlayer(id, ep) {
+async function loadPlayer(id, ep) {
   const wrap = document.getElementById('playerWrap');
-  wrap.innerHTML = '<div class="player-loading"><div class="spinner"></div><p>Loading player...</p></div>';
+  wrap.innerHTML = '<div class="player-loading"><div class="spinner"></div><p>Loading episodes from Miruro...</p></div>';
 
-  // Try to load from consumet API
-  tryConsumetStream(wrap, id, ep);
-}
-
-async function tryConsumetStream(wrap, id, ep) {
   try {
-    const res = await fetch(`https://api.consumet.org/anime/anilist/watch?episodeId=${id}-${ep}&provider=animekai`);
-    if (!res.ok) throw new Error('API error');
-    const data = await res.json();
+    const epsData = await miruroEpisodes(id);
+    const providers = epsData?.providers || {};
 
-    if (data.sources && data.sources.length > 0) {
-      const hlsUrl = data.sources.find(s => s.quality === 'default')?.url || data.sources[0]?.url;
-      if (hlsUrl) {
-        playHLS(wrap, hlsUrl);
-        return;
+    // Find provider with episodes
+    let episodeId = null;
+    let providerName = null;
+    const providerOrder = ['kiwi', 'arc', 'zoro', 'jet', 'pewe', 'bee', 'bonk', 'ally', 'moo', 'hop'];
+
+    for (const pname of providerOrder) {
+      const prov = providers[pname];
+      if (!prov) continue;
+      const subs = prov.episodes?.sub || [];
+      const epData = subs.find(e => e.number === ep);
+      if (epData) {
+        episodeId = epData.id;
+        providerName = pname;
+        break;
       }
     }
-    throw new Error('No sources');
+
+    if (!episodeId) {
+      // Try any provider
+      for (const [pname, prov] of Object.entries(providers)) {
+        const subs = prov.episodes?.sub || [];
+        if (subs.length > 0) {
+          const epData = subs.find(e => e.number === ep) || subs[0];
+          episodeId = epData.id;
+          providerName = pname;
+          break;
+        }
+      }
+    }
+
+    if (!episodeId) {
+      wrap.innerHTML = '<div class="player-loading"><p>No streams found for this episode.</p></div>';
+      return;
+    }
+
+    wrap.innerHTML = '<div class="player-loading"><div class="spinner"></div><p>Fetching stream from ' + providerName + '...</p></div>';
+
+    const sources = await miruroSources(episodeId, providerName, id);
+    const streams = sources?.streams || [];
+
+    if (streams.length === 0) {
+      wrap.innerHTML = '<div class="player-loading"><p>No video sources available.</p></div>';
+      return;
+    }
+
+    // Play the best quality stream
+    const stream = streams.find(s => s.quality === '1080p') || streams.find(s => s.quality === '720p') || streams[0];
+    playHLS(wrap, stream.url);
+
+    // Show provider buttons
+    const availableProviders = Object.keys(providers).filter(p => providers[p]?.episodes?.sub?.length > 0);
+    document.getElementById('watchActions').innerHTML =
+      '<button class="btn btn-outline" onclick="go(\'info/' + id + '\')">Series Info</button>' +
+      '<button class="btn btn-outline" onclick="window.open(\'https://myanimelist.net/anime/' + id + '\',\'_blank\')">MAL</button>' +
+      (ep > 1 ? '<button class="btn btn-outline" onclick="prevEp()">← Prev</button>' : '') +
+      (currentAnime && ep < (currentAnime.episodes || 999) ? '<button class="btn btn-outline" onclick="nextEp()">Next →</button>' : '') +
+      '<div class="provider-select" style="margin-top:8px">' +
+      availableProviders.map(p => '<button class="provider-btn' + (p === providerName ? ' active' : '') + '" onclick="switchProvider(\'' + p + '\',' + id + ',' + ep + ')">' + p + '</button>').join('') +
+      '</div>';
+
   } catch (e) {
-    console.warn('Consumet failed:', e.message);
-    tryAlternativeStream(wrap, id, ep);
+    console.error('Player error:', e);
+    wrap.innerHTML = '<div class="player-loading"><p>Failed to load stream. <a href="#" onclick="loadPlayer(' + id + ',' + ep + ');return false;" style="color:var(--accent)">Retry</a></p></div>';
   }
 }
 
-async function tryAlternativeStream(wrap, id, ep) {
-  // Try fetching from a working proxy
+async function switchProvider(provider, id, ep) {
+  const wrap = document.getElementById('playerWrap');
+  wrap.innerHTML = '<div class="player-loading"><div class="spinner"></div><p>Switching to ' + provider + '...</p></div>';
+
   try {
-    const res = await fetch(`https://api.consumet.org/anime/anilist/watch?episodeId=${id}-${ep}&provider=megacloud`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data.sources?.length > 0) {
-        const url = data.sources[0]?.url;
-        if (url) { playHLS(wrap, url); return; }
-      }
+    const epsData = await miruroEpisodes(id);
+    const prov = epsData?.providers?.[provider];
+    const subs = prov?.episodes?.sub || [];
+    const epData = subs.find(e => e.number === ep) || subs[0];
+
+    if (!epData) {
+      wrap.innerHTML = '<div class="player-loading"><p>No episodes on ' + provider + '</p></div>';
+      return;
     }
-  } catch (e) {}
 
-  // Fallback: show iframe to miruro.ru
-  showMiruroEmbed(wrap, id, ep);
-}
+    const sources = await miruroSources(epData.id, provider, id);
+    const streams = sources?.streams || [];
+    if (streams.length === 0) {
+      wrap.innerHTML = '<div class="player-loading"><p>No sources on ' + provider + '</p></div>';
+      return;
+    }
 
-function showMiruroEmbed(wrap, id, ep) {
-  const title = currentAnime?.title?.romaji?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || '';
-  wrap.innerHTML =
-    '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;background:#000;padding:20px;">' +
-    '<p style="color:var(--text-muted);text-align:center;">Select a streaming source:</p>' +
-    '<div class="provider-select">' +
-    '<button class="provider-btn active" onclick="loadPlayer(' + id + ',' + ep + ')">Auto</button>' +
-    '<button class="provider-btn" onclick="embedMiruro(\'' + id + '\',\'' + title + '\',' + ep + ')">Miruro</button>' +
-    '</div>' +
-    '<div id="embedTarget" style="width:100%;flex:1;min-height:300px;border-radius:8px;overflow:hidden;"></div>' +
-    '</div>';
-}
-
-function embedMiruro(id, slug, ep) {
-  const target = document.getElementById('embedTarget');
-  if (target) {
-    target.innerHTML = '<iframe src="https://www.miruro.ru/watch/' + id + '/' + slug + '?ep=' + ep + '" allowfullscreen allow="autoplay; encrypted-media" style="width:100%;height:100%;border:none;border-radius:8px;"></iframe>';
+    const stream = streams.find(s => s.quality === '1080p') || streams[0];
+    playHLS(wrap, stream.url);
+  } catch (e) {
+    wrap.innerHTML = '<div class="player-loading"><p>Provider failed. <a href="#" onclick="loadPlayer(' + id + ',' + ep + ');return false;" style="color:var(--accent)">Retry</a></p></div>';
   }
 }
 
@@ -488,7 +590,7 @@ function playHLS(wrap, url) {
         wrap.innerHTML = '<div class="player-loading"><p>Stream failed. <a href="#" onclick="loadPlayer(' + (currentAnime?.id || 0) + ',' + currentEpisode + ');return false;" style="color:var(--accent)">Try again</a></p></div>';
       }
     });
-  } else if (wrap.canPlayType('application/vnd.apple.mpegurl')) {
+  } else if (document.createElement('video').canPlayType('application/vnd.apple.mpegurl')) {
     const video = document.createElement('video');
     video.src = url;
     video.controls = true;
