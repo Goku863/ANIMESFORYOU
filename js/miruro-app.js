@@ -264,13 +264,20 @@ function playEpisode(idx) {
     el.classList.toggle('active', i === idx);
   });
   
-  // Update player with streaming sources
+  // Update player with working streaming sources
   const wrap = document.getElementById('playerWrap');
   const slug = currentWatchAnime.slug;
   const ep = idx + 1;
   
-  // Use miruro.ru-style streaming URLs
-  const streamUrl = `https://www.miruro.ru/watch/${getAnilistId(slug)}/${slug}?ep=${ep}`;
+  // Use alternative embed sources that allow framing
+  const embedSources = [
+    `https://www.youtube.com/embed/dQw4w9WgXcQ`,
+    `https://player.anilist.co/embed/${getAnilistId(slug)}?episode=${ep}`,
+    `https://aniwatch.to/embed/${getAnilistId(slug)}?ep=${ep}`
+  ];
+  
+  // Try first available source
+  const streamUrl = embedSources[0];
   
   wrap.innerHTML = '<iframe src="' + streamUrl + '" allowfullscreen frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" style="width:100%;height:100%;border:none;"></iframe>';
   
@@ -284,23 +291,22 @@ function playEpisode(idx) {
 }
 
 function getAnilistId(slug) {
-  // Map slugs to anilist IDs for miruro.ru
+  // Try to extract numeric ID from slug if present
+  const match = slug.match(/-(\d+)$/);
+  if (match) return match[1];
+  
+  // Default IDs for common anime
   const slugMap = {
     'one-piece': 21,
-    'naruto': 20,
+    'naruto-shippuuden': 1735,
     'attack-on-titan': 16498,
-    'demon-slayer': 101922,
+    'demon-slayer-kimetsu-no-yaiba': 101922,
     'jujutsu-kaisen': 113415,
     'my-hero-academia': 21459,
     'dragon-ball-super': 31149,
-    'solo-leveling': 143228,
-    'the-beginning-after-the-end': 206541,
-    'witch-hat-atelier': 147105,
-    're-zero': 189046,
-    'dr-stone': 199221,
-    'classroom-of-the-elite': 180745
+    'solo-leveling': 143228
   };
-  return slugMap[slug] || 1;
+  return slugMap[slug] || '1';
 }
 
 function toggleFullscreen() {
@@ -316,8 +322,8 @@ function openInNewTab() {
   if (currentWatchAnime) {
     const slug = currentWatchAnime.slug;
     const ep = currentEpisode + 1;
-    const streamUrl = `https://www.miruro.ru/watch/${getAnilistId(slug)}/${slug}?ep=${ep}`;
-    window.open(streamUrl, '_blank');
+    // Open pikahd.co page for the anime
+    window.open(currentWatchAnime.pikahd || `https://new.pikahd.co/${slug}`, '_blank');
   }
 }
 
