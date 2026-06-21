@@ -264,16 +264,32 @@ function playEpisode(idx) {
     el.classList.toggle('active', i === idx);
   });
   
-  // Update player - use pikahd.co embed or playLink
+  // Update player
   const wrap = document.getElementById('playerWrap');
   const slug = currentWatchAnime.slug;
   
-  // Use the actual playLink from scraped data if available
+  // Show loading state
+  wrap.innerHTML = '<div class="no-player"><div class="spinner"></div><p>Loading player...</p></div>';
+  
+  // Fetch actual streaming links from play URL
   if (currentWatchAnime.playLink) {
-    wrap.innerHTML = '<iframe src="' + currentWatchAnime.playLink + '" allowfullscreen frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" style="width:100%;height:100%;border:none;"></iframe>';
+    fetchStreamLinks(currentWatchAnime.playLink).then(streams => {
+      if (streams && streams.streamwish && streams.streamwish.length > idx) {
+        // Use streamwish embed (fastest)
+        const embedUrl = `https://hglink.to/e/${streams.streamwish[idx]}`;
+        wrap.innerHTML = '<iframe src="' + embedUrl + '" allowfullscreen frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" style="width:100%;height:100%;border:none;"></iframe>';
+      } else if (streams && streams.streamtape && streams.streamtape.length > idx) {
+        // Fallback to streamtape
+        const embedUrl = `https://streamtape.com/e/${streams.streamtape[idx]}`;
+        wrap.innerHTML = '<iframe src="' + embedUrl + '" allowfullscreen frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" style="width:100%;height:100%;border:none;"></iframe>';
+      } else {
+        // Fallback to pikahd.co
+        wrap.innerHTML = '<div class="no-player"><p>Click below to watch</p><a href="' + (currentWatchAnime.pikahd || 'https://new.pikahd.co/' + slug) + '" target="_blank" class="btn btn-primary" style="margin-top:12px;">▶ Watch Episode ' + (idx + 1) + '</a></div>';
+      }
+    });
   } else {
-    // Redirect to pikahd.co for playback
-    wrap.innerHTML = '<div class="no-player"><p>Click below to watch on pikahd.co</p><a href="' + (currentWatchAnime.pikahd || 'https://new.pikahd.co/' + slug) + '" target="_blank" class="btn btn-primary" style="margin-top:12px;display:inline-flex;align-items:center;gap:8px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Watch Episode ' + (idx + 1) + '</a></div>';
+    // No playLink - show pikahd.co link
+    wrap.innerHTML = '<div class="no-player"><p>Click below to watch</p><a href="' + (currentWatchAnime.pikahd || 'https://new.pikahd.co/' + slug) + '" target="_blank" class="btn btn-primary" style="margin-top:12px;">▶ Watch Episode ' + (idx + 1) + '</a></div>';
   }
   
   // Show player controls
@@ -281,7 +297,7 @@ function playEpisode(idx) {
   
   // Update play button
   document.getElementById('watchActions').innerHTML = 
-    '<button class="btn btn-primary" onclick="playEpisode(' + idx + ')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Playing Episode ' + (idx + 1) + '</button>' +
+    '<button class="btn btn-primary" onclick="playEpisode(' + idx + ')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Episode ' + (idx + 1) + '</button>' +
     '<button class="btn btn-outline" onclick="toggleWatchlist(\'' + currentWatchAnime.slug + '\')">' + (watchlist.includes(currentWatchAnime.slug) ? '★ Saved' : '☆ Save') + '</button>';
 }
 
@@ -308,16 +324,22 @@ function getAnilistId(slug) {
 async function fetchStreamLinks(playUrl) {
   try {
     const response = await fetch(playUrl);
-    const html = await response.text();
+    const text = await response.text();
     
-    // Extract streamtape and streamwish links
-    const streamtapeMatches = html.match(/streamtape_res:"([^"]+)"/g) || [];
-    const streamwishMatches = html.match(/streamwish_res:"([^"]+)"/g) || [];
+    // Extract streamtape and streamwish IDs
+    const streamtapeRegex = /streamtape_res:"([^"]+)"/g;
+    const streamwishRegex = /streamwish_res:"([^"]+)"/g;
     
-    const streams = {
-      streamtape: streamtapeMatches.map(m => m.split('"')[1]),
-      streamwish: streamwishMatches.map(m => m.split('"')[1])
-    };
+    const streams = { streamtape: [], streamwish: [] };
+    let match;
+    
+    while ((match = streamtapeRegex.exec(text)) !== null) {
+      streams.streamtape.push(match[1]);
+    }
+    
+    while ((match = streamwishRegex.exec(text)) !== null) {
+      streams.streamwish.push(match[1]);
+    }
     
     return streams;
   } catch (e) {
