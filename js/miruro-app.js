@@ -191,6 +191,9 @@ function watchAnime(id) {
   });
   document.getElementById('watchSection').style.display = '';
   
+  // Breadcrumb
+  document.getElementById('breadcrumbAnime').textContent = a.title;
+  
   // Title & Meta
   document.getElementById('watchTitle').textContent = a.title;
   
@@ -202,17 +205,19 @@ function watchAnime(id) {
   document.getElementById('watchMeta').innerHTML = metaHTML;
   
   // Actions
-  let actionsHTML = '<button class="btn btn-primary" onclick="playEpisode(0)">▶ Play Episode 1</button>';
+  let actionsHTML = '<button class="btn btn-primary" onclick="playEpisode(0)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Play Episode 1</button>';
   actionsHTML += '<button class="btn btn-outline" onclick="toggleWatchlist(\'' + a.slug + '\')">' + (watchlist.includes(a.slug) ? '★ Saved' : '☆ Save') + '</button>';
   document.getElementById('watchActions').innerHTML = actionsHTML;
   
+  // Episode count
+  document.getElementById('episodeCount').textContent = a.downloads.length;
+  
   // Episodes
   if (a.downloads.length > 0) {
-    let epHTML = '<h3>Episodes (' + a.downloads.length + ')</h3><div class="ep-grid t-stagger">';
+    let epHTML = '';
     a.downloads.forEach((_, i) => {
       epHTML += '<div class="ep-item t-pop-in' + (i === 0 ? ' active' : '') + '" onclick="playEpisode(' + i + ')" id="ep-' + i + '">EP ' + (i + 1) + '</div>';
     });
-    epHTML += '</div>';
     document.getElementById('episodeList').innerHTML = epHTML;
   } else {
     document.getElementById('episodeList').innerHTML = '';
@@ -220,7 +225,7 @@ function watchAnime(id) {
   
   // Downloads
   if (a.downloads.length > 0) {
-    let dlHTML = '<h3>⬇ Download Links</h3><div class="dl-list t-stagger">';
+    let dlHTML = '<h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Downloads</h3><div class="dl-list t-stagger">';
     a.downloads.forEach((link, i) => {
       dlHTML += '<a href="' + link + '" target="_blank" class="dl-item t-slide-up">' +
         '<span class="dl-ep">Episode ' + (i + 1) + '</span>' +
@@ -240,6 +245,9 @@ function watchAnime(id) {
     '<div><div class="title">' + esc(r.title.substring(0, 50)) + '</div>' +
     '<div class="meta">' + r.quality + ' • ' + r.year + '</div></div></div>'
   ).join('');
+  
+  // Show/hide player controls
+  document.getElementById('playerControls').style.display = a.playLink ? 'flex' : 'none';
   
   // Auto-play first episode if has playLink
   if (a.playLink) {
@@ -270,8 +278,17 @@ function playEpisode(idx) {
   
   // Update play button
   document.getElementById('watchActions').innerHTML = 
-    '<button class="btn btn-primary" onclick="playEpisode(' + idx + ')">▶ Playing Episode ' + (idx + 1) + '</button>' +
+    '<button class="btn btn-primary" onclick="playEpisode(' + idx + ')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Playing Episode ' + (idx + 1) + '</button>' +
     '<button class="btn btn-outline" onclick="toggleWatchlist(\'' + currentWatchAnime.slug + '\')">' + (watchlist.includes(currentWatchAnime.slug) ? '★ Saved' : '☆ Save') + '</button>';
+}
+
+function toggleFullscreen() {
+  const container = document.getElementById('playerContainer');
+  if (!document.fullscreenElement) {
+    container.requestFullscreen();
+  } else {
+    document.exitFullscreen();
+  }
 }
 
 function getProvider(link) {
@@ -354,3 +371,4 @@ window.toggleWatchlistPanel = toggleWatchlistPanel;
 window.toggleMobileMenu = toggleMobileMenu;
 window.closeMobileMenu = closeMobileMenu;
 window.loadMore = loadMore;
+window.toggleFullscreen = toggleFullscreen;

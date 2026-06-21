@@ -546,7 +546,29 @@ input { font-family: inherit; }
   color: var(--text-muted);
   font-size: 14px;
 }
-.player-placeholder span { font-size: 48px; }
+.player-placeholder svg { opacity: 0.5; }
+.player-controls {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+.ctrl-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.6);
+  border: none;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.ctrl-btn:hover { background: rgba(124,58,237,0.8); }
 .no-player {
   display: flex;
   align-items: center;
@@ -557,6 +579,24 @@ input { font-family: inherit; }
   padding: 40px;
   text-align: center;
 }
+.watch-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.watch-breadcrumb a {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  transition: color 0.2s;
+}
+.watch-breadcrumb a:hover { color: var(--accent); }
+.watch-breadcrumb .separator { opacity: 0.5; }
+.watch-breadcrumb .current { color: var(--text); }
 .watch-info { margin-bottom: 24px; }
 .watch-info h1 {
   font-family: var(--font-display);
@@ -596,15 +636,27 @@ input { font-family: inherit; }
 .btn-outline { border: 1px solid var(--border); color: var(--text-secondary); }
 .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
 
-/* Episode List */
-.episode-list { margin-bottom: 24px; }
-.episode-list h3 {
+/* Episode Section */
+.episode-section { margin-bottom: 24px; }
+.episode-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.episode-header h3 {
   font-family: var(--font-display);
   font-size: 16px;
   font-weight: 700;
-  margin-bottom: 12px;
 }
-.ep-grid {
+.episode-count {
+  padding: 2px 8px;
+  background: var(--bg-card);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.episode-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
   gap: 8px;
@@ -637,6 +689,9 @@ input { font-family: inherit; }
   font-size: 16px;
   font-weight: 700;
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .dl-list {
   display: flex;
@@ -686,6 +741,9 @@ input { font-family: inherit; }
   font-size: 16px;
   font-weight: 700;
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .related-item {
   display: flex;
