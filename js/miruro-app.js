@@ -15,6 +15,7 @@ let currentEpisode = 0;
 document.addEventListener('DOMContentLoaded', async () => {
   await loadData();
   renderHome();
+  document.getElementById('loading').classList.add('hidden');
 });
 
 async function loadData() {
@@ -244,6 +245,8 @@ function watchAnime(id) {
   // Auto-play first episode if has playLink
   if (a.playLink) {
     playEpisode(0);
+  } else {
+    document.getElementById('playerWrap').innerHTML = '<div class="no-player">No streaming available. Use download links below.</div>';
   }
   
   window.scrollTo(0, 0);
@@ -262,6 +265,8 @@ function playEpisode(idx) {
   const wrap = document.getElementById('playerWrap');
   if (currentWatchAnime.playLink) {
     wrap.innerHTML = '<iframe src="' + currentWatchAnime.playLink + '" allowfullscreen></iframe>';
+  } else {
+    wrap.innerHTML = '<div class="no-player">No streaming available. Use download links below.</div>';
   }
   
   // Update play button
