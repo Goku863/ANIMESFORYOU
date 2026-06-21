@@ -15,7 +15,6 @@ let currentEpisode = 0;
 document.addEventListener('DOMContentLoaded', async () => {
   await loadData();
   renderHome();
-  document.getElementById('loading').classList.add('hidden');
 });
 
 async function loadData() {
