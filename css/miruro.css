@@ -379,6 +379,10 @@ input { font-family: inherit; }
   border-color: var(--accent);
   transform: translateX(4px);
 }
+.ep-card.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
 .ep-card .ep-thumb {
   width: 120px;
   height: 68px;
