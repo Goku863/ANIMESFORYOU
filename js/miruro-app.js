@@ -1,5 +1,5 @@
 /* ============================================================
-   AnimeStream — miruro.ru Style App
+   AnimeStream — miruro.ru Style App + Watch Page
    ============================================================ */
 
 let ANIME_DB = [];
@@ -7,8 +7,9 @@ let filteredAnime = [];
 let displayCount = 40;
 let currentSection = 'home';
 let watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
-let aiOpen = false;
 let wlOpen = false;
+let currentWatchAnime = null;
+let currentEpisode = 0;
 
 // ── Init ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
@@ -72,18 +73,12 @@ function renderHero() {
   if (!featured) return;
   
   hero.innerHTML = '<img src="' + featured.poster + '" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">' +
-    '<div class="gradient"></div>' +
+    '<div style="position:absolute;inset:0;background:linear-gradient(transparent 40%, var(--bg) 100%)"></div>' +
     '<div class="hero-content">' +
-    '<h1 class="hero-title">' + escapeHtml(featured.title.substring(0, 80)) + '</h1>' +
-    '<div class="hero-meta">' +
-    '<span>' + featured.quality + '</span>' +
-    '<span>•</span>' +
-    '<span>' + featured.year + '</span>' +
-    '<span>•</span>' +
-    '<span>' + (featured.downloads.length) + ' links</span>' +
-    '</div>' +
-    '<p class="hero-desc">' + escapeHtml((featured.info?.description || '').substring(0, 200)) + '</p>' +
-    '<button class="hero-btn" onclick="openDetail(' + featured.id + ')">▶ Watch Now</button>' +
+    '<h1 class="hero-title">' + esc(featured.title.substring(0, 80)) + '</h1>' +
+    '<div class="hero-meta"><span>' + featured.quality + '</span><span>•</span><span>' + featured.year + '</span><span>•</span><span>' + featured.downloads.length + ' episodes</span></div>' +
+    '<p class="hero-desc">' + esc((featured.info?.description || '').substring(0, 200)) + '</p>' +
+    '<button class="hero-btn" onclick="watchAnime(' + featured.id + ')">▶ Watch Now</button>' +
     '</div>';
 }
 
@@ -92,15 +87,11 @@ function renderCarousel() {
   const trending = ANIME_DB.filter(a => a.downloads.length > 0).slice(0, 20);
   el.innerHTML = trending.map(a => {
     const typeBadge = getAudio(a.categories) === 'hindi' ? '<span class="badge dub">Hindi</span>' : '';
-    return '<div class="carousel-item" onclick="openDetail(' + a.id + ')">' +
-      '<div class="poster">' +
-      '<img src="' + a.poster + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
-      '<div class="play-overlay"><div class="play-btn">▶</div></div>' +
-      typeBadge +
-      '</div>' +
-      '<div class="title">' + escapeHtml(a.title.substring(0, 50)) + '</div>' +
-      '<div class="meta">' + a.quality + ' • ' + a.year + '</div>' +
-      '</div>';
+    return '<div class="carousel-item" onclick="watchAnime(' + a.id + ')">' +
+      '<div class="poster"><img src="' + a.poster + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+      '<div class="play-overlay"><div class="play-btn">▶</div></div>' + typeBadge + '</div>' +
+      '<div class="title">' + esc(a.title.substring(0, 50)) + '</div>' +
+      '<div class="meta">' + a.quality + ' • ' + a.year + '</div></div>';
   }).join('');
 }
 
@@ -129,17 +120,12 @@ function cardHTML(a) {
   else if (audio === 'dub') badge = '<span class="type-badge dub">Dub</span>';
   else badge = '<span class="type-badge sub">Sub</span>';
   
-  return '<div class="anime-card" onclick="openDetail(' + a.id + ')">' +
-    '<div class="poster">' +
-    '<img src="' + a.poster + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
-    '<div class="overlay"><div class="play-circle">▶</div></div>' +
-    badge +
+  return '<div class="anime-card" onclick="watchAnime(' + a.id + ')">' +
+    '<div class="poster"><img src="' + a.poster + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+    '<div class="overlay"><div class="play-circle">▶</div></div>' + badge +
     (a.downloads.length ? '<span class="ep-badge">' + a.downloads.length + ' EP</span>' : '') +
-    '</div>' +
-    '<div class="info">' +
-    '<div class="title">' + escapeHtml(a.title.substring(0, 60)) + '</div>' +
-    '<div class="meta">' + a.quality + ' • ' + a.year + '</div>' +
-    '</div></div>';
+    '</div><div class="info"><div class="title">' + esc(a.title.substring(0, 60)) + '</div>' +
+    '<div class="meta">' + a.quality + ' • ' + a.year + '</div></div></div>';
 }
 
 // ── Navigation ────────────────────────────────────────────
@@ -148,7 +134,7 @@ function navigateTo(section) {
   document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
   document.querySelector('.nav-link[data-section="' + section + '"]')?.classList.add('active');
   
-  ['homeSection', 'trendingSection', 'scheduleSection', 'moviesSection', 'watchlistSection', 'searchSection'].forEach(id => {
+  ['homeSection', 'trendingSection', 'moviesSection', 'scheduleSection', 'watchlistSection', 'watchSection', 'searchSection'].forEach(id => {
     document.getElementById(id).style.display = 'none';
   });
 
@@ -160,32 +146,23 @@ function navigateTo(section) {
       break;
     case 'trending':
       document.getElementById('trendingSection').style.display = '';
-      renderTrendingPage();
+      document.getElementById('trendingGrid').innerHTML = ANIME_DB.filter(a => a.downloads.length > 0).slice(0, 100).map(cardHTML).join('');
+      break;
+    case 'movies':
+      document.getElementById('moviesSection').style.display = '';
+      document.getElementById('moviesGrid').innerHTML = ANIME_DB.filter(a => a.title.toLowerCase().includes('movie')).slice(0, 50).map(cardHTML).join('');
       break;
     case 'schedule':
       document.getElementById('scheduleSection').style.display = '';
       renderSchedule();
       break;
-    case 'movies':
-      document.getElementById('moviesSection').style.display = '';
-      renderMovies();
-      break;
     case 'watchlist':
       document.getElementById('watchlistSection').style.display = '';
-      renderWatchlistPage();
+      const wl = ANIME_DB.filter(a => watchlist.includes(a.slug));
+      document.getElementById('watchlistGrid').innerHTML = wl.length ? wl.map(cardHTML).join('') : '<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">No anime in watchlist</div>';
       break;
   }
   window.scrollTo(0, 0);
-}
-
-function renderTrendingPage() {
-  const el = document.getElementById('trendingGrid');
-  el.innerHTML = ANIME_DB.filter(a => a.downloads.length > 0).slice(0, 100).map(cardHTML).join('');
-}
-
-function renderMovies() {
-  const el = document.getElementById('moviesGrid');
-  el.innerHTML = ANIME_DB.filter(a => a.title.toLowerCase().includes('movie')).slice(0, 50).map(cardHTML).join('');
 }
 
 function renderSchedule() {
@@ -194,101 +171,104 @@ function renderSchedule() {
   el.innerHTML = days.map(day => {
     const shows = ANIME_DB.filter(a => a.downloads.length > 0).slice(0, 5);
     return '<div class="schedule-card"><div class="schedule-day">' + day + '</div>' +
-      shows.map(a => '<div class="schedule-item" onclick="openDetail(' + a.id + ')">' +
+      shows.map(a => '<div class="schedule-item" onclick="watchAnime(' + a.id + ')">' +
         '<img src="' + a.poster + '" alt="" onerror="this.style.display=\'none\'">' +
-        '<div class="info"><div class="title">' + escapeHtml(a.title.substring(0, 40)) + '</div>' +
-        '<div class="time">' + a.quality + '</div></div></div>').join('') +
-      '</div>';
+        '<div class="info"><div class="title">' + esc(a.title.substring(0, 40)) + '</div>' +
+        '<div class="time">' + a.quality + '</div></div></div>').join('') + '</div>';
   }).join('');
 }
 
-function renderWatchlistPage() {
-  const el = document.getElementById('watchlistGrid');
-  const wl = ANIME_DB.filter(a => watchlist.includes(a.slug));
-  if (wl.length === 0) {
-    el.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">No anime in watchlist yet</div>';
-    return;
-  }
-  el.innerHTML = wl.map(cardHTML).join('');
-}
-
-// ── Detail Modal ──────────────────────────────────────────
-function openDetail(id) {
+// ── Watch Page (miruro.ru style) ──────────────────────────
+function watchAnime(id) {
   const a = ANIME_DB.find(x => x.id === id);
   if (!a) return;
   
-  const overlay = document.getElementById('detailOverlay');
-  const modal = document.getElementById('detailModal');
-  const content = document.getElementById('detailContent');
+  currentWatchAnime = a;
+  currentEpisode = 0;
+  
+  // Hide all sections, show watch
+  ['homeSection', 'trendingSection', 'moviesSection', 'scheduleSection', 'watchlistSection', 'searchSection'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  document.getElementById('watchSection').style.display = '';
+  
+  // Title & Meta
+  document.getElementById('watchTitle').textContent = a.title;
   
   const audio = getAudio(a.categories);
-  let badges = '';
-  if (audio === 'hindi') badges += '<span class="badge badge-red">Hindi Dubbed</span>';
-  if (audio === 'dub') badges += '<span class="badge badge-purple">Dub</span>';
-  if (audio === 'sub') badges += '<span class="badge badge-green">Sub</span>';
-  if (a.categories.includes('10bit-hevc')) badges += '<span class="badge badge-yellow">HEVC</span>';
-  if (a.info?.rating) badges += '<span class="badge badge-yellow">⭐ ' + a.info.rating + '</span>';
-  
-  let html = '<div class="detail-hero"><img src="' + a.poster + '" alt="" onerror="this.style.display=\'none\'"><div class="gradient"></div></div>';
-  html += '<div class="detail-info">';
-  html += '<h1 class="detail-title">' + escapeHtml(a.title) + '</h1>';
-  html += '<div class="detail-badges">' + badges + '</div>';
-  html += '<div class="detail-meta">';
-  html += '<span>' + a.quality + '</span>';
-  html += '<span>' + a.year + '</span>';
-  html += '<span>' + (a.audio === 'triple' ? 'Triple Audio' : a.audio === 'dub' ? 'Dual Audio' : audio === 'hindi' ? 'Hindi' : 'Sub') + '</span>';
-  html += '<span>' + a.downloads.length + ' episodes</span>';
-  html += '</div>';
-  
-  if (a.info?.description) {
-    html += '<p class="detail-desc">' + escapeHtml(a.info.description).substring(0, 400) + '</p>';
-  }
+  let metaHTML = '<span>' + a.quality + '</span><span>' + a.year + '</span>';
+  metaHTML += '<span class="badge badge-green">' + (a.audio === 'triple' ? 'Triple' : a.audio === 'dub' ? 'Dual' : audio === 'hindi' ? 'Hindi' : 'Sub') + '</span>';
+  metaHTML += '<span>' + a.downloads.length + ' episodes</span>';
+  if (a.info?.rating) metaHTML += '<span class="badge badge-yellow">⭐ ' + a.info.rating + '</span>';
+  document.getElementById('watchMeta').innerHTML = metaHTML;
   
   // Actions
-  html += '<div class="detail-actions">';
-  if (a.playLink) {
-    html += '<button class="btn btn-primary" onclick="showPlayer(\'' + a.playLink + '\')">▶ Watch Online</button>';
-  }
-  html += '<button class="btn btn-outline" onclick="toggleWatchlist(\'' + a.slug + '\')">' + (watchlist.includes(a.slug) ? '★ Saved' : '☆ Save') + '</button>';
-  html += '</div>';
+  let actionsHTML = '<button class="btn btn-primary" onclick="playEpisode(0)">▶ Play Episode 1</button>';
+  actionsHTML += '<button class="btn btn-outline" onclick="toggleWatchlist(\'' + a.slug + '\')">' + (watchlist.includes(a.slug) ? '★ Saved' : '☆ Save') + '</button>';
+  document.getElementById('watchActions').innerHTML = actionsHTML;
   
-  // Player (hidden by default)
-  html += '<div class="player-section" id="playerSection" style="display:none"><h3>▶ Now Playing</h3><div class="player-wrap" id="playerWrap"></div></div>';
+  // Episodes
+  if (a.downloads.length > 0) {
+    let epHTML = '<h3>Episodes (' + a.downloads.length + ')</h3><div class="ep-grid t-stagger">';
+    a.downloads.forEach((_, i) => {
+      epHTML += '<div class="ep-item t-pop-in' + (i === 0 ? ' active' : '') + '" onclick="playEpisode(' + i + ')" id="ep-' + i + '">EP ' + (i + 1) + '</div>';
+    });
+    epHTML += '</div>';
+    document.getElementById('episodeList').innerHTML = epHTML;
+  } else {
+    document.getElementById('episodeList').innerHTML = '';
+  }
   
   // Downloads
   if (a.downloads.length > 0) {
-    html += '<div class="downloads-section"><h3>⬇ Download (' + a.downloads.length + ')</h3><div class="dl-list">';
+    let dlHTML = '<h3>⬇ Download Links</h3><div class="dl-list t-stagger">';
     a.downloads.forEach((link, i) => {
-      html += '<a href="' + link + '" target="_blank" class="dl-item">' +
+      dlHTML += '<a href="' + link + '" target="_blank" class="dl-item t-slide-up">' +
         '<span class="dl-ep">Episode ' + (i + 1) + '</span>' +
-        '<span class="dl-provider">' + getProvider(link) + '</span>' +
-        '</a>';
+        '<span class="dl-provider">' + getProvider(link) + '</span></a>';
     });
-    html += '</div></div>';
+    dlHTML += '</div>';
+    document.getElementById('downloadSection').innerHTML = dlHTML;
+  } else {
+    document.getElementById('downloadSection').innerHTML = '';
   }
   
-  html += '</div>';
+  // Related
+  const related = ANIME_DB.filter(x => x.id !== a.id && x.downloads.length > 0).slice(0, 8);
+  document.getElementById('relatedAnime').innerHTML = related.map(r =>
+    '<div class="related-item" onclick="watchAnime(' + r.id + ')">' +
+    '<img src="' + r.poster + '" alt="" onerror="this.style.display=\'none\'">' +
+    '<div><div class="title">' + esc(r.title.substring(0, 50)) + '</div>' +
+    '<div class="meta">' + r.quality + ' • ' + r.year + '</div></div></div>'
+  ).join('');
   
-  content.innerHTML = html;
-  modal.classList.add('open');
-  overlay.classList.add('open');
-  document.body.style.overflow = 'hidden';
+  // Auto-play first episode if has playLink
+  if (a.playLink) {
+    playEpisode(0);
+  }
+  
+  window.scrollTo(0, 0);
 }
 
-function closeDetail() {
-  document.getElementById('detailModal').classList.remove('open');
-  document.getElementById('detailOverlay').classList.remove('open');
-  document.body.style.overflow = '';
-  // Stop player
-  document.getElementById('playerWrap').innerHTML = '';
-}
-
-function showPlayer(url) {
-  const section = document.getElementById('playerSection');
+function playEpisode(idx) {
+  if (!currentWatchAnime) return;
+  currentEpisode = idx;
+  
+  // Update active episode
+  document.querySelectorAll('.ep-item').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+  
+  // Update player
   const wrap = document.getElementById('playerWrap');
-  section.style.display = '';
-  wrap.innerHTML = '<iframe src="' + url + '" allowfullscreen></iframe>';
-  section.scrollIntoView({ behavior: 'smooth' });
+  if (currentWatchAnime.playLink) {
+    wrap.innerHTML = '<iframe src="' + currentWatchAnime.playLink + '" allowfullscreen></iframe>';
+  }
+  
+  // Update play button
+  document.getElementById('watchActions').innerHTML = 
+    '<button class="btn btn-primary" onclick="playEpisode(' + idx + ')">▶ Playing Episode ' + (idx + 1) + '</button>' +
+    '<button class="btn btn-outline" onclick="toggleWatchlist(\'' + currentWatchAnime.slug + '\')">' + (watchlist.includes(currentWatchAnime.slug) ? '★ Saved' : '☆ Save') + '</button>';
 }
 
 function getProvider(link) {
@@ -307,12 +287,9 @@ function toggleSearch() {
 
 function handleSearch(q) {
   const query = q.toLowerCase().trim();
-  if (!query) {
-    if (currentSection === 'search') navigateTo('home');
-    return;
-  }
+  if (!query) { if (currentSection === 'search') navigateTo('home'); return; }
   
-  ['homeSection', 'trendingSection', 'scheduleSection', 'moviesSection', 'watchlistSection'].forEach(id => {
+  ['homeSection', 'trendingSection', 'moviesSection', 'scheduleSection', 'watchlistSection', 'watchSection'].forEach(id => {
     document.getElementById(id).style.display = 'none';
   });
   document.getElementById('searchSection').style.display = '';
@@ -329,13 +306,8 @@ function handleSearch(q) {
 // ── Watchlist ─────────────────────────────────────────────
 function toggleWatchlist(slug) {
   const idx = watchlist.indexOf(slug);
-  if (idx >= 0) {
-    watchlist.splice(idx, 1);
-    showToast('Removed from watchlist');
-  } else {
-    watchlist.push(slug);
-    showToast('Added to watchlist');
-  }
+  if (idx >= 0) { watchlist.splice(idx, 1); showToast('Removed from watchlist'); }
+  else { watchlist.push(slug); showToast('Added to watchlist'); }
   localStorage.setItem('watchlist', JSON.stringify(watchlist));
 }
 
@@ -348,80 +320,19 @@ function toggleWatchlistPanel() {
 function renderWLPanel() {
   const el = document.getElementById('wlBody');
   const wl = ANIME_DB.filter(a => watchlist.includes(a.slug));
-  if (wl.length === 0) {
-    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">No saved anime</div>';
-    return;
-  }
-  el.innerHTML = wl.map(a => '<div class="wl-item" onclick="openDetail(' + a.id + ');toggleWatchlistPanel()">' +
+  if (!wl.length) { el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">No saved anime</div>'; return; }
+  el.innerHTML = wl.map(a => '<div class="wl-item" onclick="watchAnime(' + a.id + ');toggleWatchlistPanel()">' +
     '<img src="' + a.poster + '" alt="" onerror="this.style.display=\'none\'">' +
-    '<div><div class="title">' + escapeHtml(a.title.substring(0, 50)) + '</div></div>' +
-    '<span class="remove" onclick="event.stopPropagation();toggleWatchlist(\'' + a.slug + '\');renderWLPanel()">✕</span>' +
-    '</div>').join('');
-}
-
-// ── AI Panel ──────────────────────────────────────────────
-function toggleAiPanel() {
-  aiOpen = !aiOpen;
-  document.getElementById('aiPanel').classList.toggle('open', aiOpen);
-}
-
-function askAI(type) {
-  const input = document.getElementById('aiInput');
-  if (type === 'recommend') input.value = 'Recommend some anime';
-  else if (type === 'trending') input.value = 'What is trending?';
-  else if (type === 'new') input.value = 'What is new?';
-  sendAiMessage();
-}
-
-function sendAiMessage() {
-  const input = document.getElementById('aiInput');
-  const messages = document.getElementById('aiMessages');
-  if (!input.value.trim()) return;
-  
-  const userMsg = document.createElement('div');
-  userMsg.className = 'ai-msg user';
-  userMsg.textContent = input.value;
-  messages.appendChild(userMsg);
-  
-  const q = input.value.toLowerCase();
-  input.value = '';
-  
-  setTimeout(() => {
-    const botMsg = document.createElement('div');
-    botMsg.className = 'ai-msg bot';
-    
-    let response = '';
-    if (q.includes('recommend') || q.includes('suggest')) {
-      const picks = ANIME_DB.filter(a => a.downloads.length > 0).sort(() => Math.random() - 0.5).slice(0, 5);
-      response = 'Top picks:\n\n' + picks.map(a => '• ' + a.title.substring(0, 50)).join('\n');
-    } else if (q.includes('trending')) {
-      response = 'Trending:\n\n' + ANIME_DB.filter(a => a.downloads.length > 0).slice(0, 5).map(a => '• ' + a.title.substring(0, 50)).join('\n');
-    } else if (q.includes('new')) {
-      response = 'Latest:\n\n' + [...ANIME_DB].sort((a, b) => (b.created || '').localeCompare(a.created || '')).slice(0, 5).map(a => '• ' + a.title.substring(0, 50)).join('\n');
-    } else {
-      response = 'Try asking:\n• "Recommend anime"\n• "What\'s trending?"\n• "What\'s new?"';
-    }
-    
-    botMsg.textContent = response;
-    messages.appendChild(botMsg);
-    messages.scrollTop = messages.scrollHeight;
-  }, 400);
+    '<div><div class="title">' + esc(a.title.substring(0, 50)) + '</div></div>' +
+    '<span class="remove" onclick="event.stopPropagation();toggleWatchlist(\'' + a.slug + '\');renderWLPanel()">✕</span></div>').join('');
 }
 
 // ── Mobile ────────────────────────────────────────────────
-function toggleMobileMenu() {
-  document.getElementById('mobileNav').classList.toggle('open');
-}
-function closeMobileMenu() {
-  document.getElementById('mobileNav').classList.remove('open');
-}
+function toggleMobileMenu() { document.getElementById('mobileNav').classList.toggle('open'); }
+function closeMobileMenu() { document.getElementById('mobileNav').classList.remove('open'); }
 
 // ── Utilities ─────────────────────────────────────────────
-function escapeHtml(s) {
-  if (!s) return '';
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
+function esc(s) { return s ? s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : ''; }
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -431,16 +342,12 @@ function showToast(msg) {
 
 // Expose
 window.navigateTo = navigateTo;
-window.openDetail = openDetail;
-window.closeDetail = closeDetail;
-window.showPlayer = showPlayer;
+window.watchAnime = watchAnime;
+window.playEpisode = playEpisode;
 window.toggleSearch = toggleSearch;
 window.handleSearch = handleSearch;
 window.toggleWatchlist = toggleWatchlist;
 window.toggleWatchlistPanel = toggleWatchlistPanel;
-window.toggleAiPanel = toggleAiPanel;
-window.askAI = askAI;
-window.sendAiMessage = sendAiMessage;
 window.toggleMobileMenu = toggleMobileMenu;
 window.closeMobileMenu = closeMobileMenu;
 window.loadMore = loadMore;
