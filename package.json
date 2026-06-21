@@ -1,0 +1,13 @@
+{
+  "name": "animestream",
+  "version": "1.0.0",
+  "description": "Anime streaming platform with AI recommendations and n8n automation",
+  "scripts": {
+    "dev": "python3 -m http.server 8080",
+    "start": "python3 -m http.server 8080",
+    "serve": "npx serve -p 8080 ."
+  },
+  "keywords": ["anime", "streaming", "ai", "n8n", "transitions"],
+  "author": "AnimeStream",
+  "license": "MIT"
+}

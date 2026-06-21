@@ -1,0 +1,55 @@
+{
+  "name": "AnimeStream AI Recommendation Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "api/recommend",
+        "responseMode": "responseNode"
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const history = items[0].json.watchHistory;\nconst genres = items[0].json.preferredGenres;\n\n// Analyze patterns\nconst genreCounts = {};\nhistory.forEach(item => {\n  item.genre.forEach(g => {\n    genreCounts[g] = (genreCounts[g] || 0) + 1;\n  });\n});\n\nconst topGenres = Object.entries(genreCounts)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 3)\n  .map(([g]) => g);\n\nreturn [{ json: { topGenres, historyLength: history.length } }];"
+      },
+      "name": "Analyze Watch History",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "messages": {
+          "values": [
+            { "role": "system", "content": "You are an anime recommendation engine. Based on the user's watch history and preferred genres, suggest 5 anime titles they would enjoy. Return as JSON array with title, reason, and matchScore." },
+            { "role": "user", "content": "={{$json.topGenres.join(', ')}} are my top genres. I've watched {{$json.historyLength}} anime. Recommend my next watch." }
+          ]
+        }
+      },
+      "name": "OpenAI GPT-4",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json.choices[0].message.content}}"
+      },
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Analyze Watch History", "type": "main", "index": 0 }]] },
+    "Analyze Watch History": { "main": [[{ "node": "OpenAI GPT-4", "type": "main", "index": 0 }]] },
+    "OpenAI GPT-4": { "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]] }
+  }
+}

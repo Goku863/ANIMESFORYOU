@@ -1,0 +1,61 @@
+{
+  "name": "AnimeStream RSS Feed Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "hours", "hoursInterval": 1 }] }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://www.anime-planet.com/rss/feeds/new-anime",
+        "options": {}
+      },
+      "name": "RSS Feed",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const items = $input.all();\nconst newReleases = items.map(item => ({\n  json: {\n    title: item.json.title,\n    link: item.json.link,\n    pubDate: item.json.pubDate,\n    description: item.json.description,\n    synced: new Date().toISOString()\n  }\n}));\nreturn newReleases;"
+      },
+      "name": "Parse New Episodes",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "collection": "anime_releases",
+        "options": {}
+      },
+      "name": "MongoDB",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#anime-releases",
+        "text": "🆕 New anime detected: *{{$json.title}}*\n{{$json.link}}",
+        "otherOptions": {}
+      },
+      "name": "Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": { "main": [[{ "node": "RSS Feed", "type": "main", "index": 0 }]] },
+    "RSS Feed": { "main": [[{ "node": "Parse New Episodes", "type": "main", "index": 0 }]] },
+    "Parse New Episodes": { "main": [[{ "node": "MongoDB", "type": "main", "index": 0 }]] },
+    "MongoDB": { "main": [[{ "node": "Slack Notification", "type": "main", "index": 0 }]] }
+  }
+}

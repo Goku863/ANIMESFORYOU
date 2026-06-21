@@ -1,0 +1,53 @@
+{
+  "name": "AnimeStream Smart Notifications",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "hours", "hoursInterval": 6 }] }
+      },
+      "name": "Check Interval",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "collection": "user_watchlists",
+        "options": {}
+      },
+      "name": "Get User Watchlists",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const users = $input.all();\nconst notifications = [];\n\nusers.forEach(user => {\n  const watchlist = user.json.watchlist || [];\n  watchlist.forEach(anime => {\n    if (anime.nextEpisodeDate && new Date(anime.nextEpisodeDate) <= new Date()) {\n      notifications.push({\n        json: {\n          userId: user.json.userId,\n          animeTitle: anime.title,\n          episode: anime.nextEpisode,\n          type: 'new_episode'\n        }\n      });\n    }\n  });\n});\n\nreturn notifications.length ? notifications : [{ json: { empty: true } }];"
+      },
+      "name": "Check New Episodes",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "resource": "notification",
+        "userId": "={{$json.userId}}",
+        "title": "New Episode Available!",
+        "body": "={{$json.animeTitle}} Episode {{$json.episode}} is now streaming",
+        "data": { "animeId": "={{$json.animeTitle}}" }
+      },
+      "name": "Push Notification",
+      "type": "n8n-nodes-base.pushover",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Check Interval": { "main": [[{ "node": "Get User Watchlists", "type": "main", "index": 0 }]] },
+    "Get User Watchlists": { "main": [[{ "node": "Check New Episodes", "type": "main", "index": 0 }]] },
+    "Check New Episodes": { "main": [[{ "node": "Push Notification", "type": "main", "index": 0 }]] }
+  }
+}
