@@ -155,21 +155,18 @@ function openDetail(id) {
     html += '<div class="detail-desc"><h4>Storyline</h4><p>' + escapeHtml(a.storyline).substring(0, 600) + '</p></div>';
   }
   
-  // Action buttons
-  html += '<div class="detail-actions">';
+  // Embedded Player
   if (a.playLink) {
-    html += '<a href="' + a.playLink + '" target="_blank" class="btn btn-orange">▶ Watch Online</a>';
+    html += '<div class="detail-player"><h4>▶ Watch Online</h4><div class="player-wrap"><iframe src="' + a.playLink + '" frameborder="0" allowfullscreen allow="autoplay; encrypted-media"></iframe></div></div>';
   }
-  html += '<a href="' + a.pikahd + '" target="_blank" class="btn btn-outline">🔗 View on pikahd.co</a>';
-  html += '</div>';
   
-  // Download links
+  // Download links with episode names
   if (a.downloads && a.downloads.length > 0) {
     html += '<div class="detail-downloads"><h4>⬇ Download Links (' + a.downloads.length + ')</h4><div class="dl-grid">';
     a.downloads.forEach((link, i) => {
       const provider = getProvider(link);
-      const label = extractLabel(link, i);
-      html += '<a href="' + link + '" target="_blank" class="dl-item"><span class="dl-provider">' + provider + '</span><span class="dl-label">' + label + '</span></a>';
+      const epName = getEpisodeName(a, i, link);
+      html += '<a href="' + link + '" target="_blank" class="dl-item"><span class="dl-ep">' + epName + '</span><span class="dl-provider">' + provider + '</span></a>';
     });
     html += '</div><button class="btn btn-outline" style="margin-top:12px;width:100%" onclick="copyAllLinks(' + a.id + ')">📋 Copy All Links</button></div>';
   } else {
@@ -189,11 +186,32 @@ function closeDetail() {
 }
 
 function getProvider(link) {
-  if (link.includes('gdflix')) return '📁 GDFlix';
-  if (link.includes('katdrive')) return '📁 KatDrive';
-  if (link.includes('gd.kmhd')) return '📁 GD Cloud';
-  if (link.includes('links.kmhd')) return '📁 KMHD';
-  return '📁 Download';
+  if (link.includes('gdflix')) return 'GDFlix';
+  if (link.includes('katdrive')) return 'KatDrive';
+  if (link.includes('gd.kmhd')) return 'GD Cloud';
+  if (link.includes('links.kmhd')) return 'KMHD';
+  return 'Download';
+}
+
+function getEpisodeName(anime, idx, link) {
+  // Try to extract episode number from URL filename
+  const parts = link.split('/');
+  const filename = parts[parts.length - 1] || '';
+  
+  // Check if filename has episode pattern like E01, EP01, etc.
+  const epMatch = filename.match(/[Ee][Pp]?[\s_-]?(\d+)/);
+  if (epMatch) return 'Episode ' + parseInt(epMatch[1]);
+  
+  // Check for season+episode like S01E01
+  const seMatch = filename.match(/S\d+E(\d+)/i);
+  if (seMatch) return 'Episode ' + parseInt(seMatch[1]);
+  
+  // Try to extract any number from filename
+  const numMatch = filename.match(/(\d{2,3})/);
+  if (numMatch) return 'Episode ' + parseInt(numMatch[1]);
+  
+  // Default: number by position
+  return 'Episode ' + (idx + 1);
 }
 
 function extractLabel(link, idx) {
