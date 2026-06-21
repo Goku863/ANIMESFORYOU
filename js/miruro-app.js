@@ -34,7 +34,7 @@ async function loadData() {
       pikahd: a.url || `https://new.pikahd.co/${a.slug}`,
       info: a.info || {},
       storyline: a.storyline || '',
-      downloads: a.downloads || [],
+      downloads: (a.downloads || []).map(d => typeof d === 'string' ? { url: d, label: 'Download' } : d),
       playLink: a.playLink || '',
       created: a.created || ''
     }));
@@ -244,25 +244,43 @@ function watchAnime(id) {
   const infoPanel = document.getElementById('animeInfoPanel');
   if (infoPanel) infoPanel.innerHTML = infoHTML ? '<h3>More Info</h3>' + infoHTML : '';
   
-  // Download Section - organized like pikahd.co
+  // Download Section - organized like pikahd.co with REAL data
   if (a.downloads.length > 0) {
     let dlHTML = '<h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Download Links</h3>';
     
-    // Full season pack links
-    dlHTML += '<div class="dl-pack-section"><h4>Full Season Pack</h4><div class="dl-pack-grid">';
-    dlHTML += '<a href="' + a.downloads[0] + '" target="_blank" class="dl-pack-item"><span class="dl-quality">720p HEVC</span><span class="dl-size">~2.2GB</span></a>';
-    dlHTML += '<a href="' + a.downloads[0] + '" target="_blank" class="dl-pack-item"><span class="dl-quality">1080p HEVC</span><span class="dl-size">~6GB</span></a>';
-    dlHTML += '</div></div>';
-    
-    // Single episode links
-    dlHTML += '<div class="dl-episodes-section"><h4>Single Episodes</h4><div class="dl-list t-stagger">';
-    a.downloads.forEach((link, i) => {
-      dlHTML += '<a href="' + link + '" target="_blank" class="dl-item t-slide-up">' +
-        '<span class="dl-ep">E' + (i + 1).toString().padStart(2, '0') + '</span>' +
-        '<span class="dl-links"><span class="dl-link-720">720p</span><span class="dl-separator">|</span><span class="dl-link-1080">1080p</span></span>' +
-        '<span class="dl-provider">' + getProvider(link) + '</span></a>';
+    // Separate pack links (first few with quality+size) from episode links
+    const packLinks = [];
+    const epLinks = [];
+    a.downloads.forEach(d => {
+      const label = d.label || '';
+      // Pack links have size info like [2.2GB] or [6GB] or [8.19GB]
+      if (label.match(/\[\d+\.?\d*\s*[gGmM]/)) {
+        packLinks.push(d);
+      } else {
+        epLinks.push(d);
+      }
     });
-    dlHTML += '</div></div>';
+    
+    // Show pack links if any
+    if (packLinks.length > 0) {
+      dlHTML += '<div class="dl-pack-section"><h4>Full Season Pack</h4><div class="dl-pack-grid">';
+      packLinks.forEach(d => {
+        dlHTML += '<a href="' + d.url + '" target="_blank" class="dl-pack-item">' +
+          '<span class="dl-quality">' + esc(d.label) + '</span></a>';
+      });
+      dlHTML += '</div></div>';
+    }
+    
+    // Show episode links
+    if (epLinks.length > 0) {
+      dlHTML += '<div class="dl-episodes-section"><h4>Episodes (' + epLinks.length + ')</h4><div class="dl-list">';
+      epLinks.forEach((d, i) => {
+        dlHTML += '<a href="' + d.url + '" target="_blank" class="dl-item">' +
+          '<span class="dl-ep">' + esc(d.label) + '</span>' +
+          '<span class="dl-provider">' + getProvider(d.url) + '</span></a>';
+      });
+      dlHTML += '</div></div>';
+    }
     
     document.getElementById('downloadSection').innerHTML = dlHTML;
   } else {
@@ -348,6 +366,8 @@ function getProvider(link) {
   if (link.includes('katdrive')) return 'KatDrive';
   if (link.includes('gd.kmhd')) return 'GD Cloud';
   if (link.includes('links.kmhd')) return 'KMHD';
+  if (link.includes('streamtape')) return 'Streamtape';
+  if (link.includes('streamwish') || link.includes('hglink')) return 'StreamWish';
   return 'Download';
 }
 
