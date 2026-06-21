@@ -199,14 +199,15 @@ function watchAnime(id) {
   
   const audio = getAudio(a.categories);
   let metaHTML = '<span>' + a.quality + '</span><span>' + a.year + '</span>';
-  metaHTML += '<span class="badge badge-green">' + (a.audio === 'triple' ? 'Triple' : a.audio === 'dub' ? 'Dual' : audio === 'hindi' ? 'Hindi' : 'Sub') + '</span>';
+  metaHTML += '<span class="badge badge-green">' + (a.audio === 'triple' ? 'Triple Audio' : a.audio === 'dub' ? 'Dual Audio' : audio === 'hindi' ? 'Hindi Dubbed' : 'Sub') + '</span>';
   metaHTML += '<span>' + a.downloads.length + ' episodes</span>';
   if (a.info?.rating) metaHTML += '<span class="badge badge-yellow">⭐ ' + a.info.rating + '</span>';
   document.getElementById('watchMeta').innerHTML = metaHTML;
   
   // Actions
-  let actionsHTML = '<button class="btn btn-primary" onclick="playEpisode(0)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Play Episode 1</button>';
+  let actionsHTML = '<button class="btn btn-primary" onclick="playEpisode(0)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Watch Now</button>';
   actionsHTML += '<button class="btn btn-outline" onclick="toggleWatchlist(\'' + a.slug + '\')">' + (watchlist.includes(a.slug) ? '★ Saved' : '☆ Save') + '</button>';
+  actionsHTML += '<a href="' + a.pikahd + '" target="_blank" class="btn btn-outline"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg> pikahd.co</a>';
   document.getElementById('watchActions').innerHTML = actionsHTML;
   
   // Episode count
@@ -223,15 +224,38 @@ function watchAnime(id) {
     document.getElementById('episodeList').innerHTML = '';
   }
   
-  // Downloads
+  // Storyline
+  const storyline = a.info?.description || a.storyline || '';
+  document.getElementById('animeStoryline').innerHTML = storyline ? '<p>' + esc(storyline.substring(0, 500)) + '</p>' : '';
+  
+  // More Info
+  let infoHTML = '';
+  if (a.info?.genres) infoHTML += '<div class="info-row"><span class="info-label">Genres:</span><span>' + a.info.genres.join(', ') + '</span></div>';
+  if (a.info?.language) infoHTML += '<div class="info-row"><span class="info-label">Language:</span><span>' + a.info.language + '</span></div>';
+  if (a.info?.quality) infoHTML += '<div class="info-row"><span class="info-label">Quality:</span><span>' + a.info.quality + '</span></div>';
+  if (a.info?.stars) infoHTML += '<div class="info-row"><span class="info-label">Stars:</span><span>' + a.info.stars + '</span></div>';
+  document.getElementById('animeInfo').innerHTML = infoHTML;
+  
+  // Download Section - organized like pikahd.co
   if (a.downloads.length > 0) {
-    let dlHTML = '<h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Downloads</h3><div class="dl-list t-stagger">';
+    let dlHTML = '<h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Download Links</h3>';
+    
+    // Full season pack links
+    dlHTML += '<div class="dl-pack-section"><h4>Full Season Pack</h4><div class="dl-pack-grid">';
+    dlHTML += '<a href="' + a.downloads[0] + '" target="_blank" class="dl-pack-item"><span class="dl-quality">720p HEVC</span><span class="dl-size">~2.2GB</span></a>';
+    dlHTML += '<a href="' + a.downloads[0] + '" target="_blank" class="dl-pack-item"><span class="dl-quality">1080p HEVC</span><span class="dl-size">~6GB</span></a>';
+    dlHTML += '</div></div>';
+    
+    // Single episode links
+    dlHTML += '<div class="dl-episodes-section"><h4>Single Episodes</h4><div class="dl-list t-stagger">';
     a.downloads.forEach((link, i) => {
       dlHTML += '<a href="' + link + '" target="_blank" class="dl-item t-slide-up">' +
-        '<span class="dl-ep">Episode ' + (i + 1) + '</span>' +
+        '<span class="dl-ep">E' + (i + 1).toString().padStart(2, '0') + '</span>' +
+        '<span class="dl-links"><span class="dl-link-720">720p</span><span class="dl-separator">|</span><span class="dl-link-1080">1080p</span></span>' +
         '<span class="dl-provider">' + getProvider(link) + '</span></a>';
     });
-    dlHTML += '</div>';
+    dlHTML += '</div></div>';
+    
     document.getElementById('downloadSection').innerHTML = dlHTML;
   } else {
     document.getElementById('downloadSection').innerHTML = '';
@@ -246,7 +270,7 @@ function watchAnime(id) {
     '<div class="meta">' + r.quality + ' • ' + r.year + '</div></div></div>'
   ).join('');
   
-  // Show/hide player controls
+  // Show player controls
   document.getElementById('playerControls').style.display = 'flex';
   
   // Auto-play first episode
