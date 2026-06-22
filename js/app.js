@@ -3,8 +3,8 @@
    ============================================================ */
 
 const ANILIST_API = 'https://graphql.anilist.co';
-const MIRURO_PIPE_PROXY = 'https://animeforyou.pg3142292.workers.dev/api/pipe';
-const MIRURO_PIPE_DIRECT = 'https://www.miruro.tv/api/secure/pipe';
+const MIRURO_PIPE_URL = 'https://www.miruro.tv/api/secure/pipe';
+const WORKER_PROXY = 'https://animeforyou.pg3142292.workers.dev/api/pipe';
 let currentAnime = null;
 let currentEpisode = 0;
 
@@ -61,9 +61,9 @@ async function miruroPipe(path, query) {
   const payload = { path, method: 'GET', query, body: null, version: '0.1.0' };
   const encoded = encodePipeRequest(payload);
 
-  // Primary: Cloudflare Worker proxy (handles CORS)
+  // Primary: Cloudflare Worker proxy
   try {
-    const res = await fetch(`${MIRURO_PIPE_PROXY}?e=${encoded}`);
+    const res = await fetch(`${WORKER_PROXY}?e=${encoded}`);
     if (res.ok) {
       const text = await res.text();
       return await decodePipeResponse(text);
@@ -72,18 +72,16 @@ async function miruroPipe(path, query) {
     console.warn('Worker proxy failed:', e.message);
   }
 
-  // Fallback: direct (may fail due to CORS)
+  // Fallback: direct (CORS may block)
   try {
-    const res = await fetch(`${MIRURO_PIPE_DIRECT}?e=${encoded}`, {
+    const res = await fetch(`${MIRURO_PIPE_URL}?e=${encoded}`, {
       headers: { 'Referer': 'https://www.miruro.tv/' }
     });
     if (res.ok) {
       const text = await res.text();
       return await decodePipeResponse(text);
     }
-  } catch (e) {
-    console.error('All pipe attempts failed:', e.message);
-  }
+  } catch (e) {}
 
   throw new Error('All streaming sources failed');
 }
