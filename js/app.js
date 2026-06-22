@@ -3,11 +3,8 @@
    ============================================================ */
 
 const ANILIST_API = 'https://graphql.anilist.co';
-const MIRURO_PIPE_BASE = 'https://www.miruro.tv/api/secure/pipe';
-const PROXY_SERVICES = [
-  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-];
+const MIRURO_PIPE_PROXY = 'https://animeforyou.pg3142292.workers.dev/api/pipe';
+const MIRURO_PIPE_DIRECT = 'https://www.miruro.tv/api/secure/pipe';
 let currentAnime = null;
 let currentEpisode = 0;
 
@@ -63,28 +60,29 @@ function deepTranslateIds(obj) {
 async function miruroPipe(path, query) {
   const payload = { path, method: 'GET', query, body: null, version: '0.1.0' };
   const encoded = encodePipeRequest(payload);
-  const targetUrl = `${MIRURO_PIPE_BASE}?e=${encoded}`;
 
-  // Try direct first
+  // Primary: Cloudflare Worker proxy (handles CORS)
   try {
-    const res = await fetch(targetUrl, { headers: { 'Referer': 'https://www.miruro.tv/' } });
+    const res = await fetch(`${MIRURO_PIPE_PROXY}?e=${encoded}`);
     if (res.ok) {
       const text = await res.text();
       return await decodePipeResponse(text);
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Worker proxy failed:', e.message);
+  }
 
-  // Try CORS proxies
-  for (const proxyFn of PROXY_SERVICES) {
-    try {
-      const proxyUrl = proxyFn(targetUrl);
-      const res = await fetch(proxyUrl);
-      if (!res.ok) continue;
+  // Fallback: direct (may fail due to CORS)
+  try {
+    const res = await fetch(`${MIRURO_PIPE_DIRECT}?e=${encoded}`, {
+      headers: { 'Referer': 'https://www.miruro.tv/' }
+    });
+    if (res.ok) {
       const text = await res.text();
       return await decodePipeResponse(text);
-    } catch (e) {
-      console.warn('Proxy failed:', e.message);
     }
+  } catch (e) {
+    console.error('All pipe attempts failed:', e.message);
   }
 
   throw new Error('All streaming sources failed');
