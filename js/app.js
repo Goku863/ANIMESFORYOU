@@ -128,11 +128,11 @@ const QUERIES = {
   info: `query ($id: Int) {
     Media(id: $id, type: ANIME) {
       id title { romaji english native } coverImage { large } bannerImage
-      description averageScore meanScore format status episodes duration season year
-      nextAiringEpisode { episode airingAt }
+      description averageScore meanScore format status episodes duration season
+      startDate { year } nextAiringEpisode { episode airingAt }
       genres tags { name } studios(isMain: true) { nodes { name } }
       characters(sort: ROLE, perPage: 12) {
-        nodes { name { full } image { medium } role }
+        edges { role node { name { full } image { medium } } }
       }
       relations {
         edges { node { id title { romaji english } coverImage { large } format status } relationType }
@@ -334,7 +334,7 @@ async function infoPage(id) {
     '<dt>Format</dt><dd>' + (a.format || 'N/A') + '</dd>' +
     '<dt>Status</dt><dd>' + (a.status || 'N/A') + '</dd>' +
     '<dt>Duration</dt><dd>' + (a.duration ? a.duration + ' min' : 'N/A') + '</dd>' +
-    '<dt>Season</dt><dd>' + (season ? season + ' ' + (a.year || '') : 'N/A') + '</dd>' +
+    '<dt>Season</dt><dd>' + (season ? season + ' ' + (a.startDate?.year || '') : 'N/A') + '</dd>' +
     '<dt>Score</dt><dd>' + (a.averageScore ? a.averageScore + '/100' : 'N/A') + '</dd>' +
     '<dt>Episodes</dt><dd>' + epCount + '</dd>' +
     '<dt>Studio</dt><dd>' + studio + '</dd>';
@@ -353,12 +353,12 @@ async function infoPage(id) {
   ).join('') || '<p style="color:var(--text-muted);font-size:13px">No related anime</p>';
 
   // Characters
-  const chars = a.characters?.nodes || [];
+  const chars = a.characters?.edges || [];
   document.getElementById('charactersList').innerHTML = chars.map(c =>
     '<div class="character-item">' +
-    '<img src="' + (c.image?.medium || '') + '" alt="" loading="lazy">' +
-    '<div><div class="c-name">' + esc(c.name?.full || '') + '</div>' +
-    '<div class="c-role">' + c.role + '</div></div></div>'
+    '<img src="' + (c.node?.image?.medium || '') + '" alt="" loading="lazy">' +
+    '<div><div class="c-name">' + esc(c.node?.name?.full || '') + '</div>' +
+    '<div class="c-role">' + (c.role || '') + '</div></div></div>'
   ).join('') || '<p style="color:var(--text-muted);font-size:13px">No characters</p>';
 
   // Episodes
