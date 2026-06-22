@@ -44,7 +44,7 @@ function extractItems(html) {
 }
 
 function extractPostContent(html) {
-  const result = { downloads: [], info: {}, storyline: '', playLink: '', screenshots: [] };
+  const result = { downloads: [], info: {}, storyline: '', playLink: '', playData: null, screenshots: [] };
   
   const pcMatch = html.match(/post_content:"(.*?)"(?:,|})/s);
   if (!pcMatch) return result;
@@ -71,6 +71,10 @@ function extractPostContent(html) {
   
   const playMatch = content.match(/iframe src="(https?:\/\/links\.kmhd\.eu\/play\?id=[^"]+)"/);
   if (playMatch) result.playLink = playMatch[1];
+  else {
+    const playLinkMatch = content.match(/href="(https?:\/\/links\.kmhd\.eu\/play\?id=[^"]+)"/);
+    if (playLinkMatch) result.playLink = playLinkMatch[1];
+  }
   
   const infoRegex = /<li><strong>([^<]+):<\/strong>\s*([^<]+)/gi;
   while ((m = infoRegex.exec(content)) !== null) {
@@ -118,6 +122,20 @@ async function fetchAllPages() {
   return allItems;
 }
 
+async function fetchPlayData(playUrl) {
+  try {
+    const html = await fetch(playUrl);
+    const match = html.match(/__sveltekit_1oald8e\.resolve\(\{id:1,data:(\{.*?\})\}/s);
+    if (match) {
+      const data = JSON.parse(match[1].replace(/void 0/g, 'null'));
+      if (data.data && data.data.info) {
+        return data.data;
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
 async function fetchAllDetails(items) {
   console.log('\n=== Phase 2: Fetching anime details ===\n');
   const detailed = [];
@@ -129,8 +147,15 @@ async function fetchAllDetails(items) {
       try {
         const html = await fetch(`https://new.pikahd.co/${item.slug}`);
         const data = extractPostContent(html);
+        
+        let playData = null;
+        if (data.playLink) {
+          playData = await fetchPlayData(data.playLink);
+          await sleep(200);
+        }
+        
         count++;
-        return { ...item, ...data, url: `https://new.pikahd.co/${item.slug}`, fetchedAt: new Date().toISOString() };
+        return { ...item, ...data, playData, url: `https://new.pikahd.co/${item.slug}`, fetchedAt: new Date().toISOString() };
       } catch (e) {
         count++;
         return { ...item, downloads: [], info: {}, url: `https://new.pikahd.co/${item.slug}`, error: e.message };
@@ -139,7 +164,8 @@ async function fetchAllDetails(items) {
     
     detailed.push(...results);
     const withLinks = results.filter(r => r.downloads && r.downloads.length > 0).length;
-    console.log(`[${Math.min(i + CONCURRENCY, items.length)}/${items.length}] +${withLinks} with links`);
+    const withPlay = results.filter(r => r.playData).length;
+    console.log(`[${Math.min(i + CONCURRENCY, items.length)}/${items.length}] +${withLinks} links, +${withPlay} play`);
     
     await sleep(DETAIL_DELAY);
   }
@@ -282,6 +308,7 @@ const ANIME_DATA = ${JSON.stringify(data.map((a, i) => ({
   downloads: a.downloads,
   storyline: a.storyline,
   playLink: a.playLink,
+  playData: a.playData,
   url: a.url
 })))};
 
