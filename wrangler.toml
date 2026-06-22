@@ -1,4 +1,4 @@
-name = "miruro-pipe-proxy"
+name = "animeforyou"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 account_id = "2a6f5a87fb17a588b92bf866174188bd"
