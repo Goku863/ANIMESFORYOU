@@ -3,8 +3,11 @@
    ============================================================ */
 
 const ANILIST_API = 'https://graphql.anilist.co';
-const MIRURO_PIPE = 'https://www.miruro.tv/api/secure/pipe';
-const MIRURO_HEADERS = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'Referer': 'https://www.miruro.tv/' };
+const MIRURO_PIPE_BASE = 'https://www.miruro.tv/api/secure/pipe';
+const PROXY_SERVICES = [
+  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+];
 let currentAnime = null;
 let currentEpisode = 0;
 
@@ -60,10 +63,31 @@ function deepTranslateIds(obj) {
 async function miruroPipe(path, query) {
   const payload = { path, method: 'GET', query, body: null, version: '0.1.0' };
   const encoded = encodePipeRequest(payload);
-  const res = await fetch(`${MIRURO_PIPE}?e=${encoded}`, { headers: MIRURO_HEADERS });
-  if (!res.ok) throw new Error(`Pipe ${res.status}`);
-  const text = await res.text();
-  return await decodePipeResponse(text);
+  const targetUrl = `${MIRURO_PIPE_BASE}?e=${encoded}`;
+
+  // Try direct first
+  try {
+    const res = await fetch(targetUrl, { headers: { 'Referer': 'https://www.miruro.tv/' } });
+    if (res.ok) {
+      const text = await res.text();
+      return await decodePipeResponse(text);
+    }
+  } catch (e) {}
+
+  // Try CORS proxies
+  for (const proxyFn of PROXY_SERVICES) {
+    try {
+      const proxyUrl = proxyFn(targetUrl);
+      const res = await fetch(proxyUrl);
+      if (!res.ok) continue;
+      const text = await res.text();
+      return await decodePipeResponse(text);
+    } catch (e) {
+      console.warn('Proxy failed:', e.message);
+    }
+  }
+
+  throw new Error('All streaming sources failed');
 }
 
 async function miruroEpisodes(anilistId) {
