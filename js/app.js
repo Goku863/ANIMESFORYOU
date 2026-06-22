@@ -96,7 +96,7 @@ async function miruroEpisodes(anilistId) {
 
 async function miruroSources(episodeId, provider, anilistId, category = 'sub') {
   const encId = btoa(episodeId).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  const data = await miruroPipe('sources', { episodeId: encId, provider, category, anilistId });
+  const data = await miruroPipe('sources', { episodeId: encId, provider, category, anilistId: parseInt(anilistId) });
   return data;
 }
 
