@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Watch - AnimeStream</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <header>
+    <a href="/" class="logo">Anime<span>Stream</span></a>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/browse">Browse</a>
+    </nav>
+    <div class="search-bar">
+      <form action="/search" method="GET">
+        <input type="text" name="q" placeholder="Search anime...">
+        <button type="submit"><i class="fas fa-search"></i></button>
+      </form>
+    </div>
+  </header>
+
+  <div class="watch-container">
+    <div class="watch-main">
+      <div class="video-player" id="video-player">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+      
+      <div class="watch-info">
+        <h1 class="watch-title" id="watch-title">Loading...</h1>
+        <div class="watch-meta">
+          <span id="watch-type">-</span>
+          <span id="watch-ep">-</span>
+        </div>
+        
+        <div class="episode-nav" id="episode-nav"></div>
+        
+        <div class="server-list" id="server-list"></div>
+      </div>
+    </div>
+    
+    <div class="sidebar">
+      <h3 class="sidebar-title">More Episodes</h3>
+      <div id="sidebar-episodes">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-content">
+      <div class="footer-logo">Anime<span>Stream</span></div>
+      <p class="footer-desc">Watch your favorite anime in HD quality with subtitles. Free anime streaming site.</p>
+      <p class="footer-copy">&copy; 2026 AnimeStream. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="/js/watch.js"></script>
+</body>
+</html>

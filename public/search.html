@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search - AnimeStream</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <header>
+    <a href="/" class="logo">Anime<span>Stream</span></a>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/browse">Browse</a>
+    </nav>
+    <div class="search-bar">
+      <form action="/search" method="GET">
+        <input type="text" name="q" id="search-input" placeholder="Search anime...">
+        <button type="submit"><i class="fas fa-search"></i></button>
+      </form>
+    </div>
+  </header>
+
+  <section class="search-results">
+    <h2 id="search-title" class="section-title">Search Results</h2>
+    <p id="search-count" class="search-count"></p>
+    <div class="anime-grid" id="search-grid">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-content">
+      <div class="footer-logo">Anime<span>Stream</span></div>
+      <p class="footer-desc">Watch your favorite anime in HD quality with subtitles. Free anime streaming site.</p>
+      <div class="footer-links">
+        <a href="/">Home</a>
+        <a href="/browse">Browse</a>
+      </div>
+      <p class="footer-copy">&copy; 2026 AnimeStream. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="/js/search.js"></script>
+</body>
+</html>

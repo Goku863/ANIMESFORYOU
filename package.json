@@ -1,0 +1,15 @@
+{
+  "name": "anime-stream",
+  "version": "1.0.0",
+  "description": "Anime Streaming Site",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "@justalk/anime-api": "^3.0.0",
+    "express": "^4.18.2",
+    "node-fetch": "^2.6.7"
+  }
+}

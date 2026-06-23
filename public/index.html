@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AnimeStream - Watch Anime Online HD</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <header>
+    <a href="/" class="logo">Anime<span>Stream</span></a>
+    <nav>
+      <a href="/" class="active">Home</a>
+      <a href="/browse">Browse</a>
+    </nav>
+    <div class="search-bar">
+      <form action="/search" method="GET">
+        <input type="text" name="q" placeholder="Search anime...">
+        <button type="submit"><i class="fas fa-search"></i></button>
+      </form>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-slide active">
+      <div class="hero-content">
+        <span class="hero-badge">Trending</span>
+        <h1 class="hero-title">One Piece</h1>
+        <p class="hero-desc">Gol D. Roger was known as the Pirate King, the strongest and most infamous being to have sailed the Grand Line.</p>
+        <a href="/watch?anime=one-piece&episode=1" class="hero-btn">
+          <i class="fas fa-play"></i> Watch Now
+        </a>
+      </div>
+    </div>
+    <div class="hero-slide">
+      <div class="hero-content">
+        <span class="hero-badge">Popular</span>
+        <h1 class="hero-title">Naruto Shippuden</h1>
+        <p class="hero-desc">Naruto Uzumaki, a young ninja with dreams of becoming the strongest ninja and leader of his village.</p>
+        <a href="/watch?anime=naruto-shippuden&episode=1" class="hero-btn">
+          <i class="fas fa-play"></i> Watch Now
+        </a>
+      </div>
+    </div>
+    <div class="hero-slide">
+      <div class="hero-content">
+        <span class="hero-badge">Classic</span>
+        <h1 class="hero-title">Attack on Titan</h1>
+        <p class="hero-desc">Humanity lives within enormous walled cities to protect themselves from the Titans, gigantic humanoid creatures.</p>
+        <a href="/watch?anime=attack-on-titan&episode=1" class="hero-btn">
+          <i class="fas fa-play"></i> Watch Now
+        </a>
+      </div>
+    </div>
+    <div class="hero-nav">
+      <span class="hero-dot active" onclick="goToSlide(0)"></span>
+      <span class="hero-dot" onclick="goToSlide(1)"></span>
+      <span class="hero-dot" onclick="goToSlide(2)"></span>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title">Trending Now</h2>
+      <a href="/browse" class="section-link">View All <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="anime-grid" id="trending-grid">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-header">
+      <h2 class="section-title">Popular Anime</h2>
+      <a href="/browse" class="section-link">View All <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="anime-grid" id="popular-grid">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-content">
+      <div class="footer-logo">Anime<span>Stream</span></div>
+      <p class="footer-desc">Watch your favorite anime in HD quality with subtitles. Free anime streaming site.</p>
+      <div class="footer-links">
+        <a href="/browse">Browse Anime</a>
+        <a href="#">DMCA</a>
+        <a href="#">Privacy Policy</a>
+      </div>
+      <p class="footer-copy">&copy; 2026 AnimeStream. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+</body>
+</html>
