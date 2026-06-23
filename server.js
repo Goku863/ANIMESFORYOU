@@ -1,18 +1,35 @@
 const express = require('express');
 const path = require('path');
-const animeapi = require('@justalk/anime-api');
+const fetch = require('node-fetch');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.json());
 
-// Trending/Popular anime data (using API)
+const JIKAN_API = 'https://api.jikan.moe/v4';
+
+// Rate limit helper
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+// Get trending/top anime
 app.get('/api/trending', async (req, res) => {
   try {
-    const results = await animeapi.links('one piece', { limit: 10 });
-    res.json({ results });
+    const response = await fetch(`${JIKAN_API}/top/anime?filter=bypopularity&limit=15`);
+    const data = await response.json();
+    res.json({ results: data.data || [] });
+  } catch (error) {
+    res.json({ results: [] });
+  }
+});
+
+// Get top airing
+app.get('/api/airing', async (req, res) => {
+  try {
+    await delay(500);
+    const response = await fetch(`${JIKAN_API}/top/anime?filter=airing&limit=15`);
+    const data = await response.json();
+    res.json({ results: data.data || [] });
   } catch (error) {
     res.json({ results: [] });
   }
@@ -24,47 +41,34 @@ app.get('/api/search', async (req, res) => {
     const query = req.query.q;
     if (!query) return res.json({ results: [] });
     
-    const results = await animeapi.links(query, { limit: 20 });
-    res.json({ results });
+    await delay(500);
+    const response = await fetch(`${JIKAN_API}/anime?q=${encodeURIComponent(query)}&limit=20`);
+    const data = await response.json();
+    res.json({ results: data.data || [] });
   } catch (error) {
     res.json({ results: [] });
   }
 });
 
-// Get streaming links
-app.get('/api/stream', async (req, res) => {
+// Get anime details
+app.get('/api/anime/:id', async (req, res) => {
   try {
-    const { anime, episode } = req.query;
-    if (!anime || !episode) return res.json({ results: [] });
-    
-    const results = await animeapi.stream(anime, parseInt(episode), { limit_per_website: 1 });
-    res.json({ results });
+    await delay(500);
+    const response = await fetch(`${JIKAN_API}/anime/${req.params.id}/full`);
+    const data = await response.json();
+    res.json(data.data || {});
   } catch (error) {
-    res.json({ results: [] });
+    res.json({});
   }
 });
 
-// Get download links
-app.get('/api/download', async (req, res) => {
+// Get anime recommendations
+app.get('/api/recommendations/:id', async (req, res) => {
   try {
-    const { anime, episode } = req.query;
-    if (!anime || !episode) return res.json({ results: [] });
-    
-    const results = await animeapi.download(anime, parseInt(episode), { limit_per_website: 1 });
-    res.json({ results });
-  } catch (error) {
-    res.json({ results: [] });
-  }
-});
-
-// Get page links for an anime
-app.get('/api/links', async (req, res) => {
-  try {
-    const { anime } = req.query;
-    if (!anime) return res.json({ results: [] });
-    
-    const results = await animeapi.links(anime, { limit: 10 });
-    res.json({ results });
+    await delay(500);
+    const response = await fetch(`${JIKAN_API}/anime/${req.params.id}/recommendations`);
+    const data = await response.json();
+    res.json({ results: (data.data || []).slice(0, 10) });
   } catch (error) {
     res.json({ results: [] });
   }

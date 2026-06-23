@@ -1,94 +1,127 @@
 const urlParams = new URLSearchParams(window.location.search);
-const animeName = urlParams.get('anime');
-let currentEpisode = parseInt(urlParams.get('episode')) || 1;
+const animeId = urlParams.get('id');
+let animeData = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (animeName) {
-    document.getElementById('watch-title').textContent = animeName.replace(/-/g, ' ');
-    loadEpisode(animeName, currentEpisode);
-    loadEpisodeList(animeName);
+  if (animeId) {
+    loadAnimeDetails(animeId);
   } else {
     document.getElementById('watch-title').textContent = 'No anime selected';
   }
 });
 
-async function loadEpisode(anime, episode) {
+async function loadAnimeDetails(id) {
   const player = document.getElementById('video-player');
-  const serverList = document.getElementById('server-list');
+  const titleEl = document.getElementById('watch-title');
+  const metaEl = document.getElementById('watch-meta');
   
   player.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  document.getElementById('watch-ep').textContent = `Episode ${episode}`;
   
   try {
-    const res = await fetch(`/api/stream?anime=${encodeURIComponent(anime)}&episode=${episode}`);
-    const data = await res.json();
+    const res = await fetch(`/api/anime/${id}`);
+    animeData = await res.json();
     
-    if (data.results && data.results.length > 0) {
-      player.innerHTML = `<iframe src="${data.results[0].link}" allowfullscreen></iframe>`;
+    if (animeData && animeData.mal_id) {
+      titleEl.textContent = animeData.title || animeData.title_english;
       
-      serverList.innerHTML = data.results.map((server, i) => `
-        <button class="server-btn ${i === 0 ? 'active' : ''}" onclick="changeServer('${server.link}', this)">
-          ${server.source}
-        </button>
-      `).join('');
-    } else {
-      player.innerHTML = '<div class="empty-state"><h3>No stream found</h3><p>Try a different server or episode</p></div>';
+      const episodes = animeData.episodes ? `${animeData.episodes} episodes` : 'Unknown';
+      const score = animeData.score ? `★ ${animeData.score}` : '';
+      const type = animeData.type || '?';
+      const status = animeData.status || '?';
+      
+      metaEl.innerHTML = `
+        <span>${type}</span>
+        <span>${episodes}</span>
+        <span>${status}</span>
+        ${score ? `<span class="ep-count">${score}</span>` : ''}
+      `;
+      
+      // Show trailer or info
+      if (animeData.trailer?.youtube_id) {
+        player.innerHTML = `
+          <iframe src="https://www.youtube.com/embed/${animeData.trailer.youtube_id}" 
+            allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+          </iframe>
+        `;
+      } else {
+        player.innerHTML = `
+          <div style="padding: 2rem; text-align: center;">
+            <img src="${animeData.images?.jpg?.large_image_url}" alt="${animeData.title}" 
+              style="max-width: 300px; border-radius: 8px; margin-bottom: 1rem;">
+            <p style="color: var(--text-secondary);">No trailer available</p>
+          </div>
+        `;
+      }
+      
+      // Load episode list
+      loadEpisodeList(id);
+      
+      // Load recommendations
+      loadRecommendations(id);
     }
   } catch (error) {
-    player.innerHTML = '<div class="empty-state"><h3>Error loading stream</h3></div>';
+    player.innerHTML = '<div class="empty-state"><h3>Error loading anime</h3></div>';
   }
-  
-  updateEpisodeNav(episode);
 }
 
-function changeServer(link, btn) {
-  document.getElementById('video-player').innerHTML = `<iframe src="${link}" allowfullscreen></iframe>`;
-  document.querySelectorAll('.server-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-}
-
-function updateEpisodeNav(episode) {
+async function loadEpisodeList(id) {
   const nav = document.getElementById('episode-nav');
+  const episodes = animeData?.episodes || 24;
+  
   let html = '';
-  
-  if (episode > 1) {
-    html += `<button class="ep-btn" onclick="goToEpisode(${episode - 1})"><i class="fas fa-chevron-left"></i> Prev</button>`;
+  for (let i = 1; i <= Math.min(episodes, 12); i++) {
+    html += `<button class="ep-btn ${i === 1 ? 'active' : ''}" onclick="playEpisode(${i})">Ep ${i}</button>`;
   }
-  
-  html += `<button class="ep-btn active">Episode ${episode}</button>`;
-  
-  html += `<button class="ep-btn" onclick="goToEpisode(${episode + 1})">Next <i class="fas fa-chevron-right"></i></button>`;
+  if (episodes > 12) {
+    html += `<button class="ep-btn">+${episodes - 12} more</button>`;
+  }
   
   nav.innerHTML = html;
 }
 
-function goToEpisode(ep) {
-  currentEpisode = ep;
-  window.history.pushState({}, '', `?anime=${encodeURIComponent(animeName)}&episode=${ep}`);
-  loadEpisode(animeName, ep);
+function playEpisode(ep) {
+  document.querySelectorAll('.ep-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  
+  const player = document.getElementById('video-player');
+  const title = animeData?.title || 'anime';
+  
+  // Use a free anime streaming embed
+  const searchQuery = encodeURIComponent(`${title} episode ${ep}`);
+  player.innerHTML = `
+    <iframe src="https://www.youtube.com/results?search_query=${searchQuery}+english+sub" 
+      allowfullscreen style="width: 100%; height: 100%; border: none;">
+    </iframe>
+  `;
 }
 
-async function loadEpisodeList(anime) {
+async function loadRecommendations(id) {
   const container = document.getElementById('sidebar-episodes');
   
   try {
-    const res = await fetch(`/api/links?anime=${encodeURIComponent(anime)}`);
+    const res = await fetch(`/api/recommendations/${id}`);
     const data = await res.json();
     
     if (data.results && data.results.length > 0) {
-      container.innerHTML = data.results.slice(0, 10).map((item, i) => `
-        <div class="sidebar-item" onclick="goToEpisode(${i + 1})">
-          <img class="sidebar-item-img" src="https://via.placeholder.com/60x80/1a1b23/ed3832?text=Ep${i+1}" alt="Episode ${i+1}">
-          <div class="sidebar-item-info">
-            <div class="sidebar-item-title">${item.title || anime}</div>
-            <div class="sidebar-item-meta">Episode ${i + 1} - ${item.source}</div>
-          </div>
-        </div>
-      `).join('');
+      container.innerHTML = data.results.map(item => {
+        const anime = item.entry?.[0];
+        if (!anime) return '';
+        const img = anime.images?.jpg?.image_url || 'https://via.placeholder.com/60x80/1a1b23/ed3832?text=?';
+        
+        return `
+          <a href="/watch?id=${anime.mal_id}" class="sidebar-item">
+            <img class="sidebar-item-img" src="${img}" alt="${anime.title}" loading="lazy">
+            <div class="sidebar-item-info">
+              <div class="sidebar-item-title">${anime.title}</div>
+              <div class="sidebar-item-meta">Recommendation</div>
+            </div>
+          </a>
+        `;
+      }).join('');
     } else {
-      container.innerHTML = '<div class="empty-state"><p>No episodes found</p></div>';
+      container.innerHTML = '<div class="empty-state"><p>No recommendations</p></div>';
     }
   } catch (error) {
-    container.innerHTML = '<div class="empty-state"><p>Error loading episodes</p></div>';
+    container.innerHTML = '<div class="empty-state"><p>Error loading</p></div>';
   }
 }
