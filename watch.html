@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch Anime - AnimeStream</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/watch.css">
+</head>
+<body>
+    <header class="header compact">
+        <div class="header-container">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">A</span>
+                <span class="logo-text">AnimeStream</span>
+            </a>
+            <div class="header-actions">
+                <div class="search-box">
+                    <form action="search.html" method="GET">
+                        <input type="text" name="q" placeholder="Search anime...">
+                        <button type="submit"><i class="fas fa-search"></i></button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="watch-page">
+        <div class="player-wrapper">
+            <div class="player-container">
+                <video id="player" crossorigin playsinline></video>
+            </div>
+        </div>
+
+        <div class="watch-content">
+            <div class="watch-main">
+                <div class="anime-header">
+                    <h1 id="animeTitle">Loading...</h1>
+                    <div class="anime-badges" id="animeBadges"></div>
+                </div>
+
+                <div class="episode-nav">
+                    <button class="ep-nav-btn" id="prevEp" onclick="changeEpisode(-1)">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <span id="epCounter">Episode 1</span>
+                    <button class="ep-nav-btn" id="nextEp" onclick="changeEpisode(1)">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+
+                <div class="episode-info">
+                    <p id="episodeDesc"></p>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="action-btn" id="favBtn" onclick="toggleFavorite()">
+                        <i class="fas fa-heart"></i> Favorite
+                    </button>
+                    <button class="action-btn" id="listBtn" onclick="toggleWatchlist()">
+                        <i class="fas fa-bookmark"></i> Watchlist
+                    </button>
+                    <button class="action-btn" onclick="shareAnime()">
+                        <i class="fas fa-share"></i> Share
+                    </button>
+                </div>
+
+                <div class="episode-list" id="episodeList"></div>
+            </div>
+
+            <div class="watch-sidebar">
+                <h3>Recommended</h3>
+                <div class="recommended-list" id="recommendedList"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-bottom">
+            <p>&copy; 2026 AnimeStream. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        let player;
+        let currentAnime;
+        let currentEpisode = 1;
+
+        async function initWatch() {
+            const params = new URLSearchParams(window.location.search);
+            const animeId = params.get('id') || '1';
+            currentEpisode = parseInt(params.get('ep') || '1');
+
+            try {
+                currentAnime = await AnimeAPI.getAnimeById(animeId);
+                if (!currentAnime) {
+                    document.getElementById('animeTitle').textContent = 'Anime not found';
+                    return;
+                }
+
+                document.title = `${currentAnime.title} - AnimeStream`;
+                document.getElementById('animeTitle').textContent = currentAnime.title;
+
+                document.getElementById('animeBadges').innerHTML = `
+                    <span class="badge">${currentAnime.type || 'TV'}</span>
+                    <span class="badge">${currentAnime.episodes || '?'} Episodes</span>
+                    <span class="badge score"><i class="fas fa-star"></i> ${currentAnime.score || 'N/A'}</span>
+                    <span class="badge">${currentAnime.status || 'Airing'}</span>
+                `;
+
+                document.getElementById('episodeDesc').textContent = currentAnime.synopsis || 'No description available.';
+
+                renderEpisodeList();
+                loadEpisode(currentEpisode);
+                loadRecommended();
+
+                initPlayer();
+            } catch (error) {
+                console.error('Failed to load anime:', error);
+            }
+        }
+
+        function initPlayer() {
+            player = new Plyr('#player', {
+                controls: ['play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings', 'fullscreen'],
+                settings: ['speed', 'quality'],
+                speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] }
+            });
+        }
+
+        function loadEpisode(ep) {
+            currentEpisode = ep;
+            document.getElementById('epCounter').textContent = `Episode ${ep}`;
+            document.getElementById('prevEp').disabled = ep <= 1;
+            document.getElementById('nextEp').disabled = ep >= (currentAnime.episodes || 12);
+
+            // Update URL without reload
+            const url = new URL(window.location);
+            url.searchParams.set('ep', ep);
+            history.pushState({}, '', url);
+
+            // Highlight active episode
+            document.querySelectorAll('.episode-item').forEach((item, i) => {
+                item.classList.toggle('active', i + 1 === ep);
+            });
+
+            // Load video source (demo)
+            loadVideoSource();
+        }
+
+        function loadVideoSource() {
+            // Demo video - replace with actual video source
+            const videoUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+            const source = document.createElement('source');
+            source.src = videoUrl;
+            source.type = 'video/mp4';
+
+            const video = document.getElementById('player');
+            video.innerHTML = '';
+            video.appendChild(source);
+
+            if (player) player.destroy();
+            initPlayer();
+        }
+
+        function renderEpisodeList() {
+            const total = currentAnime.episodes || 12;
+            const container = document.getElementById('episodeList');
+            let html = '<h3>Episodes</h3><div class="episodes-grid">';
+
+            for (let i = 1; i <= Math.min(total, 24); i++) {
+                html += `
+                    <button class="episode-item ${i === currentEpisode ? 'active' : ''}" onclick="loadEpisode(${i})">
+                        ${i}
+                    </button>
+                `;
+            }
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        async function loadRecommended() {
+            try {
+                const recommended = await AnimeAPI.getPopular();
+                const container = document.getElementById('recommendedList');
+                container.innerHTML = recommended.slice(0, 8).map(anime => `
+                    <a href="watch.html?id=${anime.id}" class="recommended-item">
+                        <img src="${anime.image}" alt="${anime.title}" loading="lazy">
+                        <div class="rec-info">
+                            <h4>${anime.title}</h4>
+                            <span>${anime.episodes || '?'} Episodes</span>
+                        </div>
+                    </a>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load recommended:', error);
+            }
+        }
+
+        function changeEpisode(delta) {
+            const total = currentAnime?.episodes || 12;
+            const newEp = currentEpisode + delta;
+            if (newEp >= 1 && newEp <= total) {
+                loadEpisode(newEp);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function toggleFavorite() {
+            const btn = document.getElementById('favBtn');
+            btn.classList.toggle('active');
+            // Add to localStorage
+        }
+
+        function toggleWatchlist() {
+            const btn = document.getElementById('listBtn');
+            btn.classList.toggle('active');
+        }
+
+        function shareAnime() {
+            if (navigator.share) {
+                navigator.share({ title: currentAnime.title, url: window.location.href });
+            } else {
+                navigator.clipboard.writeText(window.location.href);
+                alert('Link copied!');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initWatch);
+    </script>
+</body>
+</html>

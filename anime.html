@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Details - AnimeStream</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/anime.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-container">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">A</span>
+                <span class="logo-text">AnimeStream</span>
+            </a>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="browse.html" class="nav-link">Browse</a>
+                <a href="genre.html" class="nav-link">Genres</a>
+            </nav>
+            <div class="header-actions">
+                <div class="search-box">
+                    <form action="search.html" method="GET">
+                        <input type="text" name="q" placeholder="Search anime...">
+                        <button type="submit"><i class="fas fa-search"></i></button>
+                    </form>
+                </div>
+                <a href="login.html" class="btn btn-outline">Login</a>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        <div class="mobile-menu" id="mobileMenu">
+            <a href="index.html">Home</a>
+            <a href="browse.html">Browse</a>
+            <a href="genre.html">Genres</a>
+            <a href="login.html">Login</a>
+        </div>
+    </header>
+
+    <main class="anime-page">
+        <div class="anime-banner" id="animeBanner"></div>
+
+        <div class="anime-content">
+            <div class="anime-sidebar">
+                <div class="anime-poster-large" id="animePoster"></div>
+                <div class="anime-actions">
+                    <a href="#" class="btn btn-primary btn-block" id="watchBtn">
+                        <i class="fas fa-play"></i> Watch Now
+                    </a>
+                    <button class="btn btn-outline btn-block" id="favBtn" onclick="toggleFavorite()">
+                        <i class="fas fa-heart"></i> Add to Favorites
+                    </button>
+                </div>
+            </div>
+
+            <div class="anime-details">
+                <h1 id="animeTitle">Loading...</h1>
+
+                <div class="anime-badges" id="animeBadges"></div>
+
+                <div class="anime-info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Score</span>
+                        <span class="info-value" id="animeScore">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Episodes</span>
+                        <span class="info-value" id="animeEpisodes">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Status</span>
+                        <span class="info-value" id="animeStatus">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Type</span>
+                        <span class="info-value" id="animeType">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Duration</span>
+                        <span class="info-value" id="animeDuration">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Year</span>
+                        <span class="info-value" id="animeYear">-</span>
+                    </div>
+                </div>
+
+                <div class="anime-synopsis">
+                    <h3>Synopsis</h3>
+                    <p id="animeSynopsis"></p>
+                </div>
+
+                <div class="anime-genres" id="animeGenres"></div>
+
+                <div class="anime-extra" id="animeExtra"></div>
+            </div>
+        </div>
+
+        <section class="section">
+            <div class="section-header">
+                <h2>Related Anime</h2>
+            </div>
+            <div class="anime-grid" id="relatedGrid"></div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-bottom">
+            <p>&copy; 2026 AnimeStream. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        let currentAnime = null;
+
+        async function initAnimePage() {
+            const params = new URLSearchParams(window.location.search);
+            const animeId = params.get('id');
+
+            if (!animeId) {
+                document.getElementById('animeTitle').textContent = 'No anime specified';
+                return;
+            }
+
+            try {
+                currentAnime = await AnimeAPI.getAnimeById(animeId);
+                if (!currentAnime) {
+                    document.getElementById('animeTitle').textContent = 'Anime not found';
+                    return;
+                }
+
+                document.title = `${currentAnime.title} - AnimeStream`;
+
+                // Banner
+                document.getElementById('animeBanner').innerHTML = `
+                    <img src="${currentAnime.image}" alt="${currentAnime.title}">
+                    <div class="banner-overlay"></div>
+                `;
+
+                // Poster
+                document.getElementById('animePoster').innerHTML = `
+                    <img src="${currentAnime.image}" alt="${currentAnime.title}">
+                `;
+
+                // Watch button
+                document.getElementById('watchBtn').href = `watch.html?id=${animeId}`;
+
+                // Title
+                document.getElementById('animeTitle').textContent = currentAnime.title;
+
+                // Badges
+                document.getElementById('animeBadges').innerHTML = `
+                    <span class="badge">${currentAnime.type || 'TV'}</span>
+                    <span class="badge">${currentAnime.status || 'Unknown'}</span>
+                    ${currentAnime.score ? `<span class="badge score"><i class="fas fa-star"></i> ${currentAnime.score}</span>` : ''}
+                `;
+
+                // Info grid
+                document.getElementById('animeScore').textContent = currentAnime.score || 'N/A';
+                document.getElementById('animeEpisodes').textContent = currentAnime.episodes || 'Unknown';
+                document.getElementById('animeStatus').textContent = currentAnime.status || 'Unknown';
+                document.getElementById('animeType').textContent = currentAnime.type || 'TV';
+                document.getElementById('animeDuration').textContent = currentAnime.duration || 'Unknown';
+                document.getElementById('animeYear').textContent = currentAnime.year || 'Unknown';
+
+                // Synopsis
+                document.getElementById('animeSynopsis').textContent = currentAnime.synopsis || 'No synopsis available.';
+
+                // Genres
+                document.getElementById('animeGenres').innerHTML = currentAnime.genres.map(g => `
+                    <a href="genre.html?name=${encodeURIComponent(g)}" class="genre-tag">${g}</a>
+                `).join('');
+
+                // Favorite button
+                if (UserPrefs.isFavorite(currentAnime.id)) {
+                    document.getElementById('favBtn').classList.add('active');
+                }
+
+                // Load related anime
+                loadRelatedAnime();
+
+            } catch (error) {
+                console.error('Failed to load anime:', error);
+                document.getElementById('animeTitle').textContent = 'Failed to load anime';
+            }
+        }
+
+        async function loadRelatedAnime() {
+            try {
+                const related = await AnimeAPI.getPopular();
+                document.getElementById('relatedGrid').innerHTML = related.slice(0, 6).map(anime => `
+                    <a href="anime.html?id=${anime.id}" class="anime-card">
+                        <div class="anime-poster">
+                            <img src="${anime.image}" alt="${anime.title}" loading="lazy">
+                            <div class="anime-overlay">
+                                <i class="fas fa-play-circle"></i>
+                            </div>
+                            ${anime.score ? `<span class="anime-score"><i class="fas fa-star"></i> ${anime.score}</span>` : ''}
+                        </div>
+                        <div class="anime-info">
+                            <h3 class="anime-title">${anime.title}</h3>
+                            <div class="anime-meta">
+                                <span>${anime.episodes || '?'} Episodes</span>
+                            </div>
+                        </div>
+                    </a>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load related anime:', error);
+            }
+        }
+
+        function toggleFavorite() {
+            if (!currentAnime) return;
+            const btn = document.getElementById('favBtn');
+            const added = UserPrefs.toggleFavorite(currentAnime);
+            btn.classList.toggle('active', added);
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('mobileMenu').classList.toggle('show');
+        }
+
+        document.addEventListener('DOMContentLoaded', initAnimePage);
+    </script>
+</body>
+</html>

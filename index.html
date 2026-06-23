@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnimeStream - Watch Anime Online HD</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-container">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">A</span>
+                <span class="logo-text">AnimeStream</span>
+            </a>
+            <nav class="nav">
+                <a href="index.html" class="nav-link active">Home</a>
+                <a href="browse.html" class="nav-link">Browse</a>
+                <a href="genre.html" class="nav-link">Genres</a>
+            </nav>
+            <div class="header-actions">
+                <div class="search-box">
+                    <form action="search.html" method="GET">
+                        <input type="text" name="q" placeholder="Search anime..." id="searchInput">
+                        <button type="submit"><i class="fas fa-search"></i></button>
+                    </form>
+                </div>
+                <a href="login.html" class="btn btn-outline">Login</a>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        <div class="mobile-menu" id="mobileMenu">
+            <a href="index.html">Home</a>
+            <a href="browse.html">Browse</a>
+            <a href="genre.html">Genres</a>
+            <a href="login.html">Login</a>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero" id="heroSection">
+            <div class="hero-slider" id="heroSlider"></div>
+            <div class="hero-nav">
+                <button class="hero-nav-btn prev" onclick="prevSlide()"><i class="fas fa-chevron-left"></i></button>
+                <button class="hero-nav-btn next" onclick="nextSlide()"><i class="fas fa-chevron-right"></i></button>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header">
+                <h2><i class="fas fa-fire"></i> Trending Now</h2>
+                <a href="browse.html" class="view-all">View All <i class="fas fa-angle-right"></i></a>
+            </div>
+            <div class="anime-grid" id="trendingGrid"></div>
+        </section>
+
+        <section class="section">
+            <div class="section-header">
+                <h2><i class="fas fa-clock"></i> Recent Episodes</h2>
+                <a href="browse.html" class="view-all">View All <i class="fas fa-angle-right"></i></a>
+            </div>
+            <div class="anime-grid" id="recentGrid"></div>
+        </section>
+
+        <section class="section">
+            <div class="section-header">
+                <h2><i class="fas fa-star"></i> Top Rated</h2>
+                <a href="browse.html" class="view-all">View All <i class="fas fa-angle-right"></i></a>
+            </div>
+            <div class="anime-grid" id="topGrid"></div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <a href="index.html" class="logo">
+                    <span class="logo-icon">A</span>
+                    <span class="logo-text">AnimeStream</span>
+                </a>
+                <p>Watch your favorite anime in HD quality with subtitles. Free anime streaming site.</p>
+            </div>
+            <div class="footer-links">
+                <h4>Quick Links</h4>
+                <a href="browse.html">Browse Anime</a>
+                <a href="genre.html">Genres</a>
+                <a href="login.html">Login</a>
+            </div>
+            <div class="footer-links">
+                <h4>Genres</h4>
+                <a href="genre.html?id=1">Action</a>
+                <a href="genre.html?id=2">Adventure</a>
+                <a href="genre.html?id=4">Comedy</a>
+                <a href="genre.html?id=8">Drama</a>
+            </div>
+            <div class="footer-links">
+                <h4>Info</h4>
+                <a href="#">About Us</a>
+                <a href="#">Contact</a>
+                <a href="#">DMCA</a>
+                <a href="#">Privacy Policy</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 AnimeStream. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        let currentSlide = 0;
+        let slideInterval;
+
+        async function initHomepage() {
+            try {
+                const [trending, popular, topAnime] = await Promise.all([
+                    AnimeAPI.getTrending(),
+                    AnimeAPI.getPopular(),
+                    AnimeAPI.getTopAnime()
+                ]);
+
+                renderHeroSlider(trending.slice(0, 5));
+                renderAnimeGrid('trendingGrid', trending.slice(0, 10));
+                renderAnimeGrid('recentGrid', popular.slice(0, 10));
+                renderAnimeGrid('topGrid', topAnime.slice(0, 10));
+
+                startSlideShow();
+            } catch (error) {
+                console.error('Failed to load homepage:', error);
+            }
+        }
+
+        function renderHeroSlider(animeList) {
+            const slider = document.getElementById('heroSlider');
+            slider.innerHTML = animeList.map((anime, index) => `
+                <div class="hero-slide ${index === 0 ? 'active' : ''}" data-index="${index}">
+                    <img src="${anime.image}" alt="${anime.title}" loading="lazy">
+                    <div class="hero-overlay"></div>
+                    <div class="hero-content">
+                        <span class="hero-badge">${anime.type || 'TV'}</span>
+                        <h1>${anime.title}</h1>
+                        <p>${anime.synopsis ? anime.synopsis.substring(0, 200) + '...' : ''}</p>
+                        <div class="hero-meta">
+                            <span><i class="fas fa-star"></i> ${anime.score || 'N/A'}</span>
+                            <span><i class="fas fa-tv"></i> ${anime.episodes || '?'} Episodes</span>
+                            <span><i class="fas fa-clock"></i> ${anime.duration || '24 min'}</span>
+                        </div>
+                        <div class="hero-actions">
+                            <a href="watch.html?id=${anime.id}" class="btn btn-primary">
+                                <i class="fas fa-play"></i> Watch Now
+                            </a>
+                            <a href="anime.html?id=${anime.id}" class="btn btn-outline">
+                                <i class="fas fa-info-circle"></i> Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderAnimeGrid(containerId, animeList) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = animeList.map(anime => createAnimeCard(anime)).join('');
+        }
+
+        function createAnimeCard(anime) {
+            return `
+                <a href="anime.html?id=${anime.id}" class="anime-card">
+                    <div class="anime-poster">
+                        <img src="${anime.image}" alt="${anime.title}" loading="lazy">
+                        <div class="anime-overlay">
+                            <i class="fas fa-play-circle"></i>
+                        </div>
+                        ${anime.score ? `<span class="anime-score"><i class="fas fa-star"></i> ${anime.score}</span>` : ''}
+                        <span class="anime-type">${anime.type || 'TV'}</span>
+                    </div>
+                    <div class="anime-info">
+                        <h3 class="anime-title">${anime.title}</h3>
+                        <div class="anime-meta">
+                            <span>${anime.episodes || '?'} Episodes</span>
+                            <span>${anime.status || 'Airing'}</span>
+                        </div>
+                    </div>
+                </a>
+            `;
+        }
+
+        function startSlideShow() {
+            slideInterval = setInterval(nextSlide, 5000);
+        }
+
+        function nextSlide() {
+            const slides = document.querySelectorAll('.hero-slide');
+            if (slides.length === 0) return;
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (currentSlide + 1) % slides.length;
+            slides[currentSlide].classList.add('active');
+        }
+
+        function prevSlide() {
+            const slides = document.querySelectorAll('.hero-slide');
+            if (slides.length === 0) return;
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+            slides[currentSlide].classList.add('active');
+            clearInterval(slideInterval);
+            startSlideShow();
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('mobileMenu').classList.toggle('show');
+        }
+
+        document.addEventListener('DOMContentLoaded', initHomepage);
+    </script>
+</body>
+</html>

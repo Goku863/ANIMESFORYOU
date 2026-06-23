@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Anime - AnimeStream</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-container">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">A</span>
+                <span class="logo-text">AnimeStream</span>
+            </a>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="browse.html" class="nav-link active">Browse</a>
+                <a href="genre.html" class="nav-link">Genres</a>
+            </nav>
+            <div class="header-actions">
+                <div class="search-box">
+                    <form action="search.html" method="GET">
+                        <input type="text" name="q" placeholder="Search anime...">
+                        <button type="submit"><i class="fas fa-search"></i></button>
+                    </form>
+                </div>
+                <a href="login.html" class="btn btn-outline">Login</a>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        <div class="mobile-menu" id="mobileMenu">
+            <a href="index.html">Home</a>
+            <a href="browse.html">Browse</a>
+            <a href="genre.html">Genres</a>
+            <a href="login.html">Login</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="browse-header">
+            <h1>Browse Anime</h1>
+            <div class="filter-bar">
+                <select id="typeFilter" onchange="applyFilters()">
+                    <option value="">All Types</option>
+                    <option value="tv">TV</option>
+                    <option value="movie">Movie</option>
+                    <option value="ova">OVA</option>
+                    <option value="ona">ONA</option>
+                    <option value="special">Special</option>
+                </select>
+                <select id="statusFilter" onchange="applyFilters()">
+                    <option value="">All Status</option>
+                    <option value="airing">Airing</option>
+                    <option value="complete">Completed</option>
+                    <option value="upcoming">Upcoming</option>
+                </select>
+                <select id="sortFilter" onchange="applyFilters()">
+                    <option value="score">Score</option>
+                    <option value="name">Name</option>
+                    <option value="recent">Recent</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="genre-tags" id="genreTags"></div>
+
+        <div class="anime-grid" id="browseGrid"></div>
+
+        <div class="load-more" id="loadMore" style="display: none;">
+            <button class="btn btn-outline" onclick="loadMore()">Load More</button>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-bottom">
+            <p>&copy; 2026 AnimeStream. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        let currentPage = 1;
+        let allAnime = [];
+
+        async function initBrowse() {
+            try {
+                allAnime = await AnimeAPI.getAllAnime();
+                renderGenreTags();
+                applyFilters();
+            } catch (error) {
+                console.error('Failed to load anime:', error);
+            }
+        }
+
+        function renderGenreTags() {
+            const genres = [
+                { id: 1, name: 'Action' },
+                { id: 2, name: 'Adventure' },
+                { id: 4, name: 'Comedy' },
+                { id: 8, name: 'Drama' },
+                { id: 10, name: 'Fantasy' },
+                { id: 22, name: 'Romance' },
+                { id: 24, name: 'Sci-Fi' },
+                { id: 27, name: 'Shounen' }
+            ];
+
+            const container = document.getElementById('genreTags');
+            container.innerHTML = genres.map(g => `
+                <a href="genre.html?id=${g.id}" class="genre-tag">${g.name}</a>
+            `).join('');
+        }
+
+        function applyFilters() {
+            const type = document.getElementById('typeFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            const sort = document.getElementById('sortFilter').value;
+
+            let filtered = [...allAnime];
+
+            if (type) filtered = filtered.filter(a => a.type?.toLowerCase() === type);
+            if (status) filtered = filtered.filter(a => a.status?.toLowerCase() === status);
+
+            if (sort === 'name') filtered.sort((a, b) => a.title.localeCompare(b.title));
+            else if (sort === 'score') filtered.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+            renderBrowseGrid(filtered.slice(0, 20));
+        }
+
+        function renderBrowseGrid(animeList) {
+            const grid = document.getElementById('browseGrid');
+            grid.innerHTML = animeList.map(anime => createAnimeCard(anime)).join('');
+        }
+
+        function loadMore() {
+            currentPage++;
+            applyFilters();
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('mobileMenu').classList.toggle('show');
+        }
+
+        document.addEventListener('DOMContentLoaded', initBrowse);
+    </script>
+</body>
+</html>

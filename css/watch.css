@@ -1,0 +1,243 @@
+.watch-page {
+    padding-top: 70px;
+}
+
+.player-wrapper {
+    background: #000;
+    position: relative;
+}
+
+.player-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    aspect-ratio: 16/9;
+}
+
+.player-container video {
+    width: 100%;
+    height: 100%;
+}
+
+.watch-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px 20px;
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 30px;
+}
+
+.anime-header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.anime-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.badge {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.badge.score {
+    background: rgba(255, 193, 7, 0.1);
+    border-color: rgba(255, 193, 7, 0.3);
+    color: #ffc107;
+}
+
+.badge.score .fa-star {
+    margin-right: 4px;
+}
+
+.episode-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+}
+
+.ep-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ep-nav-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.ep-nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.episode-info {
+    margin-bottom: 20px;
+}
+
+.episode-info p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.7;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 30px;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.action-btn.active {
+    background: rgba(var(--accent-rgb), 0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.episode-list h3 {
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+}
+
+.episodes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+    gap: 8px;
+}
+
+.episode-item {
+    aspect-ratio: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.episode-item:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.episode-item.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+.watch-sidebar h3 {
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+}
+
+.recommended-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.recommended-item {
+    display: flex;
+    gap: 12px;
+    padding: 8px;
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    transition: background 0.2s;
+}
+
+.recommended-item:hover {
+    background: var(--bg-card-hover);
+}
+
+.recommended-item img {
+    width: 80px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+.rec-info h4 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.rec-info span {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+@media (max-width: 1024px) {
+    .watch-content {
+        grid-template-columns: 1fr;
+    }
+
+    .watch-sidebar {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .player-container {
+        aspect-ratio: 16/10;
+    }
+
+    .anime-header h1 {
+        font-size: 1.2rem;
+    }
+
+    .action-buttons {
+        flex-wrap: wrap;
+    }
+
+    .episodes-grid {
+        grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+    }
+}

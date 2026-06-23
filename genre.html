@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse by Genre - AnimeStream</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-container">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">A</span>
+                <span class="logo-text">AnimeStream</span>
+            </a>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="browse.html" class="nav-link">Browse</a>
+                <a href="genre.html" class="nav-link active">Genres</a>
+            </nav>
+            <div class="header-actions">
+                <div class="search-box">
+                    <form action="search.html" method="GET">
+                        <input type="text" name="q" placeholder="Search anime...">
+                        <button type="submit"><i class="fas fa-search"></i></button>
+                    </form>
+                </div>
+                <a href="login.html" class="btn btn-outline">Login</a>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        <div class="mobile-menu" id="mobileMenu">
+            <a href="index.html">Home</a>
+            <a href="browse.html">Browse</a>
+            <a href="genre.html">Genres</a>
+            <a href="login.html">Login</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="genre-page">
+            <h1 id="genreTitle">Browse by Genre</h1>
+
+            <div class="genre-grid" id="genreGrid"></div>
+
+            <div class="anime-grid" id="genreAnimeGrid"></div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-bottom">
+            <p>&copy; 2026 AnimeStream. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        const genres = [
+            { id: 1, name: 'Action', icon: 'fa-hand-fist' },
+            { id: 2, name: 'Adventure', icon: 'fa-compass' },
+            { id: 4, name: 'Comedy', icon: 'fa-face-laugh-beam' },
+            { id: 8, name: 'Drama', icon: 'fa-masks-theater' },
+            { id: 10, name: 'Fantasy', icon: 'fa-hat-wizard' },
+            { id: 14, name: 'Horror', icon: 'fa-ghost' },
+            { id: 7, name: 'Mystery', icon: 'fa-magnifying-glass' },
+            { id: 22, name: 'Romance', icon: 'fa-heart' },
+            { id: 24, name: 'Sci-Fi', icon: 'fa-rocket' },
+            { id: 36, name: 'Slice of Life', icon: 'fa-leaf' },
+            { id: 30, name: 'Sports', icon: 'fa-futbol' },
+            { id: 37, name: 'Supernatural', icon: 'fa-wand-magic-sparkles' },
+            { id: 41, name: 'Thriller', icon: 'fa-skull' }
+        ];
+
+        let selectedGenre = null;
+
+        function initGenrePage() {
+            renderGenreGrid();
+
+            const params = new URLSearchParams(window.location.search);
+            const genreId = params.get('id');
+            const genreName = params.get('name');
+
+            if (genreId) {
+                selectGenre(parseInt(genreId));
+            } else if (genreName) {
+                const genre = genres.find(g => g.name.toLowerCase() === genreName.toLowerCase());
+                if (genre) selectGenre(genre.id);
+            }
+        }
+
+        function renderGenreGrid() {
+            const grid = document.getElementById('genreGrid');
+            grid.innerHTML = genres.map(genre => `
+                <button class="genre-card ${selectedGenre === genre.id ? 'active' : ''}" onclick="selectGenre(${genre.id})">
+                    <i class="fas ${genre.icon}"></i>
+                    <span>${genre.name}</span>
+                </button>
+            `).join('');
+        }
+
+        async function selectGenre(genreId) {
+            selectedGenre = genreId;
+            const genre = genres.find(g => g.id === genreId);
+
+            document.getElementById('genreTitle').textContent = genre ? genre.name : 'Genre';
+
+            renderGenreGrid();
+
+            const grid = document.getElementById('genreAnimeGrid');
+            grid.innerHTML = '<div class="loading">Loading anime...</div>';
+
+            try {
+                const animeList = await AnimeAPI.getAnimeByGenre(genreId, 20);
+
+                if (animeList.length === 0) {
+                    grid.innerHTML = '<div class="empty-state"><p>No anime found for this genre</p></div>';
+                    return;
+                }
+
+                grid.innerHTML = animeList.map(anime => `
+                    <a href="anime.html?id=${anime.id}" class="anime-card">
+                        <div class="anime-poster">
+                            <img src="${anime.image}" alt="${anime.title}" loading="lazy">
+                            <div class="anime-overlay">
+                                <i class="fas fa-play-circle"></i>
+                            </div>
+                            ${anime.score ? `<span class="anime-score"><i class="fas fa-star"></i> ${anime.score}</span>` : ''}
+                        </div>
+                        <div class="anime-info">
+                            <h3 class="anime-title">${anime.title}</h3>
+                            <div class="anime-meta">
+                                <span>${anime.episodes || '?'} Episodes</span>
+                            </div>
+                        </div>
+                    </a>
+                `).join('');
+            } catch (error) {
+                grid.innerHTML = '<div class="empty-state"><p>Failed to load anime</p></div>';
+            }
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('mobileMenu').classList.toggle('show');
+        }
+
+        document.addEventListener('DOMContentLoaded', initGenrePage);
+    </script>
+
+    <style>
+        .genre-page {
+            padding: 40px 0;
+        }
+
+        .genre-page h1 {
+            font-size: 2rem;
+            margin-bottom: 30px;
+        }
+
+        .genre-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 40px;
+        }
+
+        .genre-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 20px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .genre-card i {
+            font-size: 1.5rem;
+        }
+
+        .genre-card:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .genre-card.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+    </style>
+</body>
+</html>
